@@ -1,0 +1,121 @@
+---
+title: "replacing stripe's proration with our own billing strategies"
+date: "2026-02-08"
+description: "how we moved from stripe's built-in proration to a strategy pattern with four billing modes — and why the decorator pattern made dunning trivial to add."
+---
+
+## the problem with stripe's proration
+
+for the first couple of years at <LinkPreview id="cal.com">cal.com</LinkPreview>, we used stripe's built-in proration. add a seat, stripe adjusts the invoice. remove a seat, stripe issues a credit. simple.
+
+except it wasn't.
+
+stripe's proration is designed for the general case — it does fractional-day calculations, creates credit notes, and generates line items that are nearly impossible for a customer to understand. a team of 5 adds a member on day 15 of a monthly cycle and gets an invoice with three line items, two credits, and a net charge of $7.42. try explaining that to a customer.
+
+we also had a growing problem: we needed *different* billing behaviours for different subscription types. annual subscribers shouldn't get hit with immediate charges every time they add a seat. monthly subscribers should be billed for their peak usage, not their end-of-month count. and we were starting to explore active-user-based pricing.
+
+stripe's proration couldn't do any of this without hacking around it.
+
+## the strategy interface
+
+the first thing i built was the abstraction. every billing strategy needed to handle the same set of events — a seat changes, an invoice is upcoming, a renewal is paid, a payment fails. so i defined a single interface:
+
+```typescript
+interface ISeatBillingStrategy {
+  onSeatChange(context: SeatChangeContext): Promise<void>;
+  onInvoiceUpcoming(subscriptionId: string): Promise<{ applied: boolean }>;
+  onRenewalPaid(subscriptionId: string, periodStart: Date): Promise<{ reset: boolean }>;
+  onPaymentSucceeded(invoice: StripeInvoiceData): Promise<{ handled: boolean }>;
+  onPaymentFailed(invoice: StripeInvoiceData, reason: string): Promise<{ handled: boolean }>;
+}
+```
+
+the key insight: the webhook handler doesn't need to know *how* billing works. it just needs to call the right method. the strategy handles the rest.
+
+## four strategies, one interface
+
+we ended up with four concrete implementations:
+
+**ImmediateUpdateStrategy** — the original behaviour. seat changes go straight to stripe. this is the fallback for trial accounts and anyone not on a special billing mode.
+
+```typescript
+class ImmediateUpdateStrategy extends BaseSeatBillingStrategy {
+  async onSeatChange(context: SeatChangeContext) {
+    await this.billingProviderService.handleSubscriptionUpdate({
+      subscriptionId: context.subscriptionId,
+      subscriptionItemId: context.subscriptionItemId,
+      membershipCount: context.membershipCount,
+    });
+  }
+}
+```
+
+**HighWaterMarkStrategy** — for monthly subscriptions. instead of adjusting the subscription on every seat change, we track the *peak* seat count during the billing period. when stripe's `invoice.upcoming` webhook fires, we set the subscription quantity to the high water mark. after renewal, the mark resets.
+
+```typescript
+class HighWaterMarkStrategy extends BaseSeatBillingStrategy {
+  async onSeatChange(context: SeatChangeContext) {
+    if (context.changeType !== "addition") return;
+    // only track additions — removals don't reduce the bill
+    await this.deps.highWaterMarkRepository.updateIfHigher({
+      teamId: context.teamId,
+      newSeatCount: context.membershipCount,
+      periodStart,
+    });
+  }
+
+  async onInvoiceUpcoming(subscriptionId: string) {
+    // right before stripe generates the invoice, set quantity to HWM
+    const applied = await this.deps.highWaterMarkService
+      .applyHighWaterMarkToSubscription(subscriptionId);
+    return { applied };
+  }
+}
+```
+
+this means if you add 10 seats mid-month and remove 5 before renewal, you pay for 10. simple to explain, fair to us, predictable for the customer.
+
+**MonthlyProrationStrategy** — for annual subscriptions. we track every seat change with an `operationId` for idempotency, then run a monthly cron that calculates the prorated charges ourselves and generates a separate invoice. no more stripe credit notes.
+
+**ActiveUserBillingStrategy** — the newest. instead of billing for seats, we bill for users who actually booked or were booked in the billing period. the strategy queries active users at invoice time and adjusts the subscription quantity accordingly.
+
+## the factory
+
+the factory decides which strategy to use based on the team's billing configuration:
+
+```typescript
+class SeatBillingStrategyFactory {
+  async createByTeamId(teamId: number): Promise<ISeatBillingStrategy> {
+    const info = await this.billingPeriodService
+      .getBillingPeriodInfo(teamId);
+
+    if (!info.isInTrial && info.subscriptionStart) {
+      if (info.billingMode === "ACTIVE_USERS")
+        return this.activeUserStrategy;
+      if (info.billingPeriod === "ANNUALLY")
+        return this.prorationStrategy;
+      if (info.billingPeriod === "MONTHLY")
+        return this.hwmStrategy;
+    }
+
+    return this.fallback; // ImmediateUpdate
+  }
+}
+```
+
+feature flags gate each strategy. we can roll out a new billing mode to a subset of teams, monitor the results, and roll back without touching the webhook handler.
+
+## what this unlocked
+
+the webhook resolver went from a mess of conditionals to this:
+
+```typescript
+const strategy = await factory.createByTeamId(teamId);
+await strategy.onSeatChange(context);
+```
+
+adding a new billing mode means writing a class that implements `ISeatBillingStrategy` and adding a branch to the factory. the rest of the system — webhooks, seat tracking, the admin ui — doesn't change.
+
+and because each strategy is independently testable, we caught edge cases in the HWM logic (what happens when a team is created mid-cycle?) that would have been invisible in a monolithic billing handler.
+
+the next post covers how we layered dunning on top of this using the decorator pattern — without modifying any of the strategies.

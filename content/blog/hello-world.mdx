@@ -1,0 +1,72 @@
+---
+title: "hello world — building this site"
+date: "2026-03-22"
+description: "how i built brydon.io with next.js, mdx, three.js particles, and a monospaced design system."
+---
+
+# hello world
+
+welcome to brydon.io. this is the first post on my new portfolio site, and i wanted to walk through how it's built — the stack, the design decisions, and why everything is monospaced.
+
+## the stack
+
+the site is built with <LinkPreview id="next.js">next.js 15</LinkPreview> and <LinkPreview id="typescript">typescript</LinkPreview>, styled with <LinkPreview id="tailwind">tailwind css v4</LinkPreview>, and deployed on vercel.
+
+blog posts are written in <LinkPreview id="mdx">mdx</LinkPreview> — markdown that supports react components. this means i can embed interactive elements directly in my writing:
+
+<Callout type="info" title="why mdx?">
+mdx lets me write prose naturally while dropping in custom components for code demos, link previews, and interactive visualizations — the same approach i used for the technical docs on claimtheworld.dev/explain.
+</Callout>
+
+## design philosophy
+
+the design is intentionally minimal. a few principles:
+
+- **monospaced everything** — jetbrains mono throughout. it gives the site a technical, editorial feel without trying too hard
+- **640px content width** — narrow enough for comfortable reading, wide enough for code blocks
+- **dark and light** — both modes are first-class. dark uses `#050505` with indigo accents, light uses `#fafafa` with deeper indigo
+- **no unnecessary decoration** — content first, chrome last
+
+## the particle hero
+
+the homepage has a three.js particle effect that forms my initials "SB". around 2000 particles drift from random positions into the letter shapes, then gently float in place. the particles respond to the theme — indigo in dark mode, deeper purple in light.
+
+```typescript
+// sample text positions from a hidden canvas
+const cvs = document.createElement("canvas");
+const ctx = cvs.getContext("2d");
+ctx.font = "bold 72px monospace";
+ctx.fillText("SB", 100, 42);
+const imgData = ctx.getImageData(0, 0, 200, 80);
+// extract filled pixel positions as particle targets
+```
+
+## custom components
+
+every post gets access to a set of custom mdx components:
+
+- **LinkPreview** — hover over any linked technology to see a preview card
+- **Callout** — highlighted notes, warnings, and tips
+- **Canvas** — embedded canvas elements for visualizations
+- **CodeBlock** — syntax-highlighted code with language labels
+
+<Callout type="note" title="extensible">
+adding a new component is just creating a react component and registering it in the mdx renderer. no config files, no plugins.
+</Callout>
+
+## github contributions
+
+the homepage also shows my github contribution graph, fetched from a public api and rendered with an indigo color scale instead of github's default green. it updates automatically.
+
+## what's next
+
+i plan to write about:
+
+1. gpu rendering techniques from building claim the world
+2. lessons from working on cal.com's open source codebase
+3. real-time multiplayer architecture with convex
+4. the art of building minimal, fast websites
+
+---
+
+*thanks for reading. the source for this site is on [github](https://github.com/sean-brydon).*
