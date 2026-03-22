@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  --font-family-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', Consolas, monospace;
+  --color-accent: #6366f1;
+  --color-accent-hover: #4f46e5;
+  --color-accent-light: #4f46e5;
+  --color-accent-light-hover: #4338ca;
+}
+
+/* ── Base ─────────────────────────────────────────────── */
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-family-mono);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ── Light mode (default) ─────────────────────────────── */
+:root {
+  --bg: #fafafa;
+  --text: #1a1a1a;
+  --text-muted: #6b7280;
+  --border: rgba(0, 0, 0, 0.08);
+  --code-bg: rgba(0, 0, 0, 0.04);
+  --card-bg: rgba(0, 0, 0, 0.02);
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+}
+
+/* ── Dark mode ────────────────────────────────────────── */
+.dark {
+  --bg: #050505;
+  --text: #e0e0e0;
+  --text-muted: #6b7280;
+  --border: rgba(255, 255, 255, 0.06);
+  --code-bg: rgba(255, 255, 255, 0.04);
+  --card-bg: rgba(255, 255, 255, 0.02);
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Selection ────────────────────────────────────────── */
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+/* ── Scrollbar ────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── Focus ────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

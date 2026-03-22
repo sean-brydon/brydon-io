@@ -1,0 +1,140 @@
+---
+title: "adding dunning to billing without touching a single strategy"
+date: "2026-01-15"
+description: "how the decorator pattern let us layer payment failure handling across four billing strategies with zero changes to existing code."
+---
+
+## the problem
+
+we had four billing strategies working well — immediate updates, high water mark, monthly proration, and active user billing. then we needed dunning.
+
+dunning is what happens when a payment fails. you don't just shrug and let the team keep operating. you escalate: first a warning, then restrict features, then pause bookings, and eventually cancel the subscription. each tier blocks more: `INVITE_MEMBER` → `CREATE_EVENT_TYPE` → `CREATE_BOOKING` → `API_ACCESS`.
+
+the naive approach would be to add dunning logic to every strategy. four strategies, each with `onPaymentFailed` and `onPaymentSucceeded` methods that now need to call the dunning service. that's code duplication, and worse — every future strategy would need to remember to include it.
+
+## the decorator
+
+instead, i wrapped the strategies. the `DunningAwareStrategy` implements the same `ISeatBillingStrategy` interface but delegates everything to an inner strategy. it only intercepts two methods:
+
+```typescript
+class DunningAwareStrategy extends BaseSeatBillingStrategy {
+  constructor(private readonly deps: {
+    inner: ISeatBillingStrategy;
+    dunningService: DunningService;
+    teamId: number;
+    subscriptionId: string;
+  }) { super(); }
+
+  // pass through — no dunning concern
+  async onSeatChange(context) {
+    return this.deps.inner.onSeatChange(context);
+  }
+  async onInvoiceUpcoming(subscriptionId) {
+    return this.deps.inner.onInvoiceUpcoming(subscriptionId);
+  }
+  async onRenewalPaid(subscriptionId, periodStart) {
+    return this.deps.inner.onRenewalPaid(subscriptionId, periodStart);
+  }
+
+  // intercept — update dunning state, then delegate
+  async onPaymentFailed(invoice, reason) {
+    try {
+      await this.deps.dunningService.onPaymentFailed({
+        teamId: this.deps.teamId,
+        subscriptionId: this.deps.subscriptionId,
+        failureReason: reason,
+      });
+    } catch (error) {
+      log.error("dunning update failed", { error });
+      // never block the inner strategy
+    }
+    return this.deps.inner.onPaymentFailed(invoice, reason);
+  }
+
+  async onPaymentSucceeded(invoice) {
+    try {
+      await this.deps.dunningService
+        .onPaymentSucceeded(this.deps.teamId);
+    } catch (error) {
+      log.error("dunning update failed", { error });
+    }
+    return this.deps.inner.onPaymentSucceeded(invoice);
+  }
+}
+```
+
+the critical design decision: dunning errors are caught and logged but *never* block the inner strategy. if the dunning service is down, billing still works. the decorator adds behaviour without risking the core flow.
+
+## the wrapping factory
+
+to make this transparent, i created a `DunningStrategyFactory` that wraps the existing `SeatBillingStrategyFactory`:
+
+```typescript
+class DunningStrategyFactory {
+  constructor(private readonly deps: {
+    inner: SeatBillingStrategyFactory;
+    dunningServiceFactory: DunningServiceFactory;
+  }) {}
+
+  async createByTeamId(teamId: number) {
+    const strategy = await this.deps.inner
+      .createByTeamId(teamId);
+    return this.wrapIfEnabled(strategy, teamId);
+  }
+
+  private async wrapIfEnabled(inner, teamId) {
+    const resolved = await this.deps
+      .dunningServiceFactory.forTeam(teamId);
+    if (!resolved) return inner; // dunning not enabled
+
+    return new DunningAwareStrategy({
+      inner,
+      dunningService: resolved.service,
+      teamId,
+      subscriptionId: subscriptionId ?? "",
+    });
+  }
+}
+```
+
+the rest of the codebase just swaps which factory it uses. the webhook handler doesn't know or care whether dunning is active. it still just calls `strategy.onPaymentFailed(invoice, reason)`.
+
+## the dunning state machine
+
+the `DunningService` itself is a state machine with four tiers:
+
+<Callout type="info" title="dunning tiers">
+**warning** → payment failed, send email, no restrictions yet.
+**soft block** → 7 days later, block member invitations and event type creation.
+**hard block** → 14 days later, block bookings and api access.
+**cancelled** → 21 days later, cancel the subscription entirely.
+</Callout>
+
+a cron job (running on trigger.dev) advances tiers daily. when a payment succeeds at any point, the state resets to current and all restrictions are lifted.
+
+the guard that enforces restrictions is separate from the billing flow entirely — it's a `DunningGuard` that checks the current tier before allowing protected operations:
+
+```typescript
+class DunningGuard {
+  async enforce(teamId: number, action: DunningAction) {
+    const status = await this.dunningService
+      .getStatus(teamId);
+    if (this.isBlocked(status.tier, action)) {
+      throw new DunningBlockedError(action, status.tier);
+    }
+  }
+}
+```
+
+this is injected into the booking flow, event type creation, member invitations, and api middleware. each integration point is a single `await guard.enforce(teamId, "CREATE_BOOKING")` call.
+
+## why this worked
+
+zero changes to the four billing strategies. zero changes to the webhook handler. the decorator is independently testable — the test file mocks the inner strategy and the dunning service and verifies that:
+
+1. all methods pass through to the inner strategy
+2. `onPaymentFailed` calls `dunningService.onPaymentFailed` before delegating
+3. `onPaymentSucceeded` calls `dunningService.onPaymentSucceeded` before delegating
+4. dunning errors don't prevent the inner strategy from executing
+
+the whole dunning system — state machine, decorator, guard, cron, emails — was added across about 10 commits without modifying a single line of the existing billing strategies. that's the power of building on the right abstraction.

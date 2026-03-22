@@ -1,0 +1,267 @@
+---
+title: "building a permission system from scratch at cal.com"
+date: "2026-01-28"
+description: "how we replaced simple role checks with a typed, registry-driven permission system — with dependency graphs, scope filtering, and a zero-downtime migration path."
+---
+
+## three roles wasn't enough
+
+for the longest time, <LinkPreview id="cal.com">cal.com</LinkPreview> had three roles: `OWNER`, `ADMIN`, `MEMBER`. permission checks looked like this everywhere:
+
+```typescript
+if (membership.role !== "ADMIN" && membership.role !== "OWNER") {
+  throw new Error("unauthorized");
+}
+```
+
+scattered across dozens of tRPC procedures, page components, and api handlers. no consistency. no way to customise. and as organizations grew, the requests kept coming — "can we have someone who can manage event types but not billing?" "can we have a read-only role for interns?"
+
+we needed PBAC — permission-based access control. custom roles with granular permissions, scoped to teams and organizations, with a migration path that didn't break anything.
+
+## the permission registry
+
+the core of the system is a typed registry. every resource in the app (event types, bookings, teams, workflows, routing forms, webhooks, etc.) declares what actions are possible and what they depend on:
+
+```typescript
+enum Resource {
+  EventType = "eventType",
+  Team = "team",
+  Organization = "organization",
+  Booking = "booking",
+  Workflow = "workflow",
+  RoutingForm = "routingForm",
+  Webhook = "webhook",
+  // ...15 resources total
+}
+
+enum CrudAction {
+  Create = "create",
+  Read = "read",
+  Update = "update",
+  Delete = "delete",
+}
+
+enum CustomAction {
+  Invite = "invite",
+  Remove = "remove",
+  ChangeMemberRole = "changeMemberRole",
+  ManageBilling = "manageBilling",
+  Impersonate = "impersonate",
+  // ...
+}
+```
+
+each permission is a `PermissionString` — a union type like `"eventType.create"` or `"team.invite"`. the registry defines metadata for every valid combination:
+
+```typescript
+const PERMISSION_REGISTRY = {
+  [Resource.EventType]: {
+    [CrudAction.Create]: {
+      description: "Create event types",
+      category: "event",
+      dependsOn: ["eventType.read"],
+    },
+    [CrudAction.Read]: {
+      description: "View event types",
+      category: "event",
+    },
+    // ...
+  },
+  [Resource.Team]: {
+    [CustomAction.Invite]: {
+      description: "Invite team members",
+      category: "team",
+      dependsOn: [
+        "team.read",
+        "team.listMembers",
+        "role.read"
+      ],
+    },
+    // ...
+  },
+} satisfies PermissionRegistry;
+```
+
+the `satisfies` keyword is key — it ensures the registry matches the type but preserves the literal types for autocomplete and exhaustive checks.
+
+## dependency graphs
+
+the `dependsOn` field creates a directed graph of permissions. you can't invite team members if you can't see the team or list its members. this isn't just documentation — we enforce it:
+
+```typescript
+const traversePermissions = (
+  startPermission: string,
+  direction: "dependencies" | "dependents",
+  scope: Scope
+): string[] => {
+  const visited = new Set<string>();
+  const result = new Set<string>();
+  const queue = [startPermission]; // BFS
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+
+    if (direction === "dependencies") {
+      // find what current depends on
+      const details = registry[resource][action];
+      details?.dependsOn?.forEach((dep) => {
+        result.add(dep);
+        queue.push(dep);
+      });
+    } else {
+      // find what depends on current
+      // reverse traversal
+    }
+  }
+  return Array.from(result);
+};
+```
+
+when an admin enables `team.invite` in the role editor UI, we automatically enable `team.read`, `team.listMembers`, and `role.read`. when they disable `team.read`, we warn that `team.invite`, `team.remove`, and `team.changeMemberRole` will also lose access.
+
+<Callout type="info" title="scope filtering">
+not every permission makes sense everywhere. `team.create` only applies at the organization scope. `availability.update` is user-level. the registry filters by scope so the role editor only shows relevant permissions for teams vs. organizations.
+</Callout>
+
+## the permission check service
+
+the `PermissionCheckService` is the single entry point for all permission checks. it handles the critical question: is PBAC even enabled for this team?
+
+```typescript
+class PermissionCheckService {
+  async checkPermission({
+    userId,
+    teamId,
+    permission,
+    fallbackRoles,
+  }: {
+    userId: number;
+    teamId: number;
+    permission: PermissionString;
+    fallbackRoles: MembershipRole[];
+  }): Promise<boolean> {
+
+    const isPBACEnabled = await teamFeatureRepo
+      .checkIfTeamHasFeature(teamId, "pbac");
+
+    if (isPBACEnabled) {
+      // check custom role permissions
+      return this.hasPermission(
+        { userId, teamId },
+        permission
+      );
+    }
+
+    // fallback: use legacy role check
+    const membership = await membershipRepo
+      .findUniqueByUserIdAndTeamId({ userId, teamId });
+    return fallbackRoles.includes(membership.role);
+  }
+}
+```
+
+this is the migration path. every call site provides both the new permission string AND the old fallback roles. when PBAC is disabled (the default), it behaves exactly like the old system. when enabled, it uses the new permission lookup. zero breakage.
+
+## the permission hierarchy
+
+permissions cascade through organizational hierarchy. a user can have a role at both the team level and the organization level. the check service resolves both:
+
+```typescript
+private async getMembership(query: PermissionCheck) {
+  // get team-level membership
+  let membership = await this.repository
+    .getMembershipByUserAndTeam(query.userId, query.teamId);
+
+  // get org-level membership (if team belongs to org)
+  let orgMembership = null;
+  if (membership?.team.parentId) {
+    orgMembership = await this.repository
+      .getOrgMembership(
+        membership.userId,
+        membership.team.parentId
+      );
+  }
+
+  return { membership, orgMembership };
+}
+```
+
+an org admin automatically has permissions across all teams in the organization, even if they don't have a specific team membership. this matches how people actually think about access.
+
+## client-side: the permission store
+
+on the frontend, we use a zustand store that gets hydrated once per session:
+
+```typescript
+const usePermissionStore = create<PermissionStore>((set, get) => ({
+  teamPermissions: new Map(),
+
+  hasPermission: (teamId, permission) => {
+    const perms = get().teamPermissions.get(teamId);
+    if (!perms) return false;
+    return perms.permissions.has(permission);
+  },
+}));
+
+// usage in components
+function TeamSettings({ teamId }) {
+  const { hasPermission } = usePermission(
+    teamId,
+    "team.update"
+  );
+
+  if (!hasPermission) return <ReadOnlyView />;
+  return <EditableView />;
+}
+```
+
+the permission set is fetched once per team and cached client-side. no per-action API calls. the `usePermission` hook makes it trivial to conditionally render UI.
+
+## the helper that made migration painless
+
+the `getResourcePermissions` helper bridges old and new code. you pass it a resource, a user, and the old fallback role config. it returns a clean `{ canRead, canEdit, canDelete, canCreate }` object:
+
+```typescript
+const permissions = await getResourcePermissions({
+  userId,
+  teamId,
+  resource: Resource.RoutingForm,
+  userRole: membership.role,
+  fallbackRoles: {
+    read: {
+      roles: [MembershipRole.MEMBER,
+              MembershipRole.ADMIN,
+              MembershipRole.OWNER]
+    },
+    create: {
+      roles: [MembershipRole.ADMIN,
+              MembershipRole.OWNER]
+    },
+    update: {
+      roles: [MembershipRole.ADMIN,
+              MembershipRole.OWNER]
+    },
+    delete: {
+      roles: [MembershipRole.ADMIN,
+              MembershipRole.OWNER]
+    },
+  },
+});
+
+if (!permissions.canEdit) throw new Error("unauthorized");
+```
+
+this function handles the PBAC feature flag check internally. when PBAC is off, it checks the fallback roles. when it's on, it queries the permission service. the calling code doesn't care.
+
+## what we ended up with
+
+- **15 resources** with typed CRUD + custom actions
+- **dependency graph** with BFS traversal for auto-enable/disable
+- **scope filtering** so team roles don't show org-only permissions
+- **dual-mode checking** — PBAC or fallback roles, per team
+- **client-side store** — zustand with `usePermission` hook
+- **zero-downtime rollout** — feature-flagged per organization, with fallback behaviour matching the old system exactly
+
+the whole system is about 20 files across domain models, repositories, services, and the client store. it took roughly 40 commits to build out fully, from the initial `feat: pbac` PR through to org-wide migration. and because every check has a fallback, we could ship it to one organization at a time and verify before rolling out further.
