@@ -8,6 +8,9 @@ import Callout from "./mdx/Callout";
 import Canvas from "./mdx/Canvas";
 import CodeBlock from "./mdx/CodeBlock";
 import InlineCode from "./mdx/InlineCode";
+import HWMViz from "./mdx/HWMViz";
+import DunningViz from "./mdx/DunningViz";
+import PermissionGraphViz from "./mdx/PermissionGraphViz";
 
 // Smart code component: detects fenced blocks vs inline
 function SmartCode(props: React.ComponentProps<"code"> & { children?: React.ReactNode }) {
@@ -47,6 +50,9 @@ const mdxComponents = {
   Callout,
   Canvas,
   CodeBlock,
+  HWMViz,
+  DunningViz,
+  PermissionGraphViz,
   code: SmartCode,
   h1: (props: React.ComponentProps<"h1">) => (
     <h1 className="text-xl font-bold mt-10 mb-4" style={{ color: "var(--text)" }} {...props} />
