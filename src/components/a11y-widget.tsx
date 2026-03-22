@@ -2,12 +2,15 @@
 
 import { useEffect, useState, useCallback } from "react";
 
+type ColorVisionMode = "none" | "protanopia" | "deuteranopia" | "tritanopia" | "achromatopsia";
+
 interface A11yState {
   dyslexicFont: boolean;
   largeText: boolean;
   highContrast: boolean;
   reducedMotion: boolean;
   lineHeight: boolean;
+  colorVision: ColorVisionMode;
 }
 
 const STORAGE_KEY = "a11y-preferences";
@@ -18,7 +21,16 @@ const defaults: A11yState = {
   highContrast: false,
   reducedMotion: false,
   lineHeight: false,
+  colorVision: "none",
 };
+
+const COLOR_VISION_MODES: { value: ColorVisionMode; label: string; description: string }[] = [
+  { value: "none", label: "default", description: "no color adjustment" },
+  { value: "protanopia", label: "protanopia", description: "red-blind" },
+  { value: "deuteranopia", label: "deuteranopia", description: "green-blind" },
+  { value: "tritanopia", label: "tritanopia", description: "blue-blind" },
+  { value: "achromatopsia", label: "achromatopsia", description: "total color blindness" },
+];
 
 export function A11yWidget() {
   const [open, setOpen] = useState(false);
@@ -45,6 +57,13 @@ export function A11yWidget() {
     el.classList.toggle("a11y-reduced-motion", state.reducedMotion);
     el.classList.toggle("a11y-line-height", state.lineHeight);
 
+    // Color vision filter
+    if (state.colorVision !== "none") {
+      el.style.filter = `url(#a11y-${state.colorVision})`;
+    } else {
+      el.style.filter = "";
+    }
+
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {}
@@ -58,7 +77,7 @@ export function A11yWidget() {
     setState(defaults);
   }, []);
 
-  const activeCount = Object.values(state).filter(Boolean).length;
+  const activeCount = Object.values(state).filter((v) => v === true).length + (state.colorVision !== "none" ? 1 : 0);
 
   if (!mounted) return null;
 
@@ -189,9 +208,80 @@ export function A11yWidget() {
                 }
               />
             </div>
+
+            {/* Color vision */}
+            <div className="px-4 py-3" style={{ borderTop: "1px solid var(--border)" }}>
+              <p className="text-[11px] font-medium mb-2" style={{ color: "var(--text)" }}>
+                color vision
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {COLOR_VISION_MODES.map((mode) => {
+                  const isActive = state.colorVision === mode.value;
+                  return (
+                    <button
+                      key={mode.value}
+                      onClick={() => setState((prev) => ({ ...prev, colorVision: mode.value }))}
+                      className="text-[10px] px-2 py-1 rounded-md transition-colors"
+                      style={{
+                        background: isActive ? "var(--accent)" : "var(--card-bg)",
+                        color: isActive ? "#fff" : "var(--text-muted)",
+                        border: isActive ? "1px solid var(--accent)" : "1px solid var(--border)",
+                        cursor: "pointer",
+                      }}
+                      title={mode.description}
+                      aria-pressed={isActive}
+                    >
+                      {mode.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </>
       )}
+
+      {/* SVG color vision filters — hidden, referenced by CSS filter: url(#id) */}
+      <svg className="absolute w-0 h-0" aria-hidden="true">
+        <defs>
+          {/* Protanopia — red-blind */}
+          <filter id="a11y-protanopia">
+            <feColorMatrix type="matrix" values="
+              0.567, 0.433, 0,     0, 0
+              0.558, 0.442, 0,     0, 0
+              0,     0.242, 0.758, 0, 0
+              0,     0,     0,     1, 0
+            " />
+          </filter>
+          {/* Deuteranopia — green-blind */}
+          <filter id="a11y-deuteranopia">
+            <feColorMatrix type="matrix" values="
+              0.625, 0.375, 0,   0, 0
+              0.7,   0.3,   0,   0, 0
+              0,     0.3,   0.7, 0, 0
+              0,     0,     0,   1, 0
+            " />
+          </filter>
+          {/* Tritanopia — blue-blind */}
+          <filter id="a11y-tritanopia">
+            <feColorMatrix type="matrix" values="
+              0.95, 0.05,  0,     0, 0
+              0,    0.433, 0.567, 0, 0
+              0,    0.475, 0.525, 0, 0
+              0,    0,     0,     1, 0
+            " />
+          </filter>
+          {/* Achromatopsia — total color blindness */}
+          <filter id="a11y-achromatopsia">
+            <feColorMatrix type="matrix" values="
+              0.299, 0.587, 0.114, 0, 0
+              0.299, 0.587, 0.114, 0, 0
+              0.299, 0.587, 0.114, 0, 0
+              0,     0,     0,     1, 0
+            " />
+          </filter>
+        </defs>
+      </svg>
     </>
   );
 }
