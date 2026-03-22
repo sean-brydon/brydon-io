@@ -2,7 +2,7 @@ export function Footer() {
   return (
     <footer className="max-w-[640px] mx-auto px-5 py-12">
       <div
-        className="flex items-center justify-between text-xs"
+        className="flex items-center justify-between text-xs gap-4 flex-wrap"
         style={{ color: "var(--text-muted)", opacity: 0.5 }}
       >
         <span>© {new Date().getFullYear()} sean brydon</span>
