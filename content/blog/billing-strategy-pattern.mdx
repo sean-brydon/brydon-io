@@ -75,6 +75,8 @@ class HighWaterMarkStrategy extends BaseSeatBillingStrategy {
 
 this means if you add 10 seats mid-month and remove 5 before renewal, you pay for 10. simple to explain, fair to us, predictable for the customer.
 
+<HWMViz />
+
 **MonthlyProrationStrategy** — for annual subscriptions. we track every seat change with an `operationId` for idempotency, then run a monthly cron that calculates the prorated charges ourselves and generates a separate invoice. no more stripe credit notes.
 
 **ActiveUserBillingStrategy** — the newest. instead of billing for seats, we bill for users who actually booked or were booked in the billing period. the strategy queries active users at invoice time and adjusts the subscription quantity accordingly.

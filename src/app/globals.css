@@ -65,3 +65,43 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* ── Accessibility overrides ──────────────────────────── */
+
+.a11y-dyslexic,
+.a11y-dyslexic * {
+  font-family: var(--font-dyslexic), system-ui, sans-serif !important;
+  letter-spacing: 0.02em;
+  word-spacing: 0.1em;
+}
+
+.a11y-large-text {
+  font-size: 120% !important;
+}
+
+.a11y-line-height,
+.a11y-line-height * {
+  line-height: 2.2 !important;
+}
+
+.a11y-high-contrast {
+  --text: #000 !important;
+  --text-muted: #333 !important;
+  --border: rgba(0, 0, 0, 0.3) !important;
+  --card-bg: rgba(0, 0, 0, 0.04) !important;
+}
+.a11y-high-contrast.dark {
+  --text: #fff !important;
+  --text-muted: #ccc !important;
+  --border: rgba(255, 255, 255, 0.25) !important;
+  --card-bg: rgba(255, 255, 255, 0.08) !important;
+}
+
+.a11y-reduced-motion,
+.a11y-reduced-motion * {
+  animation: none !important;
+  transition: none !important;
+}
+.a11y-reduced-motion canvas {
+  opacity: 0.3;
+}

@@ -110,6 +110,8 @@ the `DunningService` itself is a state machine with four tiers:
 **cancelled** → 21 days later, cancel the subscription entirely.
 </Callout>
 
+<DunningViz />
+
 a cron job (running on trigger.dev) advances tiers daily. when a payment succeeds at any point, the state resets to current and all restrictions are lifted.
 
 the guard that enforces restrictions is separate from the billing flow entirely — it's a `DunningGuard` that checks the current tier before allowing protected operations:

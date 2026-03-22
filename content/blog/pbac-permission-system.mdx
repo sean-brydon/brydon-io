@@ -119,6 +119,8 @@ const traversePermissions = (
 };
 ```
 
+<PermissionGraphViz />
+
 when an admin enables `team.invite` in the role editor UI, we automatically enable `team.read`, `team.listMembers`, and `role.read`. when they disable `team.read`, we warn that `team.invite`, `team.remove`, and `team.changeMemberRole` will also lose access.
 
 <Callout type="info" title="scope filtering">

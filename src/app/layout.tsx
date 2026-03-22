@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Lexend } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./components/theme-provider";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
+import { A11yWidget } from "@/components/a11y-widget";
 
 const font = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+});
+
+const dyslexicFont = Lexend({
+  subsets: ["latin"],
+  variable: "--font-dyslexic",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${font.variable} font-mono antialiased`}>
+      <body className={`${font.variable} ${dyslexicFont.variable} font-mono antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -38,6 +44,7 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
             <Footer />
           </div>
+          <A11yWidget />
         </ThemeProvider>
       </body>
     </html>
