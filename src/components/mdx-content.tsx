@@ -9,12 +9,45 @@ import Canvas from "./mdx/Canvas";
 import CodeBlock from "./mdx/CodeBlock";
 import InlineCode from "./mdx/InlineCode";
 
+// Smart code component: detects fenced blocks vs inline
+function SmartCode(props: React.ComponentProps<"code"> & { children?: React.ReactNode }) {
+  const { className, children, ...rest } = props;
+  // If it has a language class, it's inside a <pre> — let pre handle it
+  if (className && className.startsWith("language-")) {
+    return <code className={className} {...rest}>{children}</code>;
+  }
+  // Otherwise it's inline code
+  return <InlineCode {...props} />;
+}
+
+// Smart pre component: intercepts <pre><code className="language-x"> and routes to CodeBlock
+function SmartPre(props: React.ComponentProps<"pre"> & { children?: React.ReactNode }) {
+  const { children, ...rest } = props;
+  // Check if the child is a <code> element with a language class
+  if (children && typeof children === "object" && "props" in children) {
+    const codeProps = (children as React.ReactElement).props;
+    if (codeProps?.className && codeProps.className.startsWith("language-")) {
+      return (
+        <CodeBlock className={codeProps.className}>
+          {codeProps.children}
+        </CodeBlock>
+      );
+    }
+  }
+  // Fallback for plain pre blocks
+  return (
+    <pre className="text-xs leading-relaxed mb-6 p-4 rounded-lg overflow-x-auto" style={{ background: "var(--code-bg)", border: "1px solid var(--border)", color: "var(--text)" }} {...rest}>
+      {children}
+    </pre>
+  );
+}
+
 const mdxComponents = {
   LinkPreview,
   Callout,
   Canvas,
   CodeBlock,
-  code: InlineCode,
+  code: SmartCode,
   h1: (props: React.ComponentProps<"h1">) => (
     <h1 className="text-xl font-bold mt-10 mb-4" style={{ color: "var(--text)" }} {...props} />
   ),
@@ -42,9 +75,7 @@ const mdxComponents = {
   a: (props: React.ComponentProps<"a">) => (
     <a className="no-underline font-medium" style={{ color: "var(--accent)", borderBottom: "1px dashed color-mix(in srgb, var(--accent) 40%, transparent)", paddingBottom: "1px" }} target="_blank" rel="noopener noreferrer" {...props} />
   ),
-  pre: (props: React.ComponentProps<"pre">) => (
-    <pre className="text-xs leading-relaxed mb-6 p-4 rounded-lg overflow-x-auto" style={{ background: "var(--code-bg)", border: "1px solid var(--border)", color: "var(--text)" }} {...props} />
-  ),
+  pre: SmartPre,
   blockquote: (props: React.ComponentProps<"blockquote">) => (
     <blockquote className="mb-5 pl-4 italic text-sm" style={{ borderLeft: "3px solid var(--accent)", color: "var(--text-muted)" }} {...props} />
   ),

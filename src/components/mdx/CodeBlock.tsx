@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 
 interface CodeBlockProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ export default function CodeBlock({ children, className, title }: CodeBlockProps
   const language = className?.replace("language-", "") || "";
   const code = typeof children === "string" ? children : extractText(children);
   const [highlighted, setHighlighted] = useState<string | null>(null);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     if (!code || !language) return;
@@ -22,7 +24,7 @@ export default function CodeBlock({ children, className, title }: CodeBlockProps
         const { codeToHtml } = await import("shiki");
         const html = await codeToHtml(code.trim(), {
           lang: language,
-          theme: "github-dark-default",
+          theme: resolvedTheme === "dark" ? "github-dark-default" : "github-light-default",
         });
         if (!cancelled) setHighlighted(html);
       } catch {
@@ -31,7 +33,7 @@ export default function CodeBlock({ children, className, title }: CodeBlockProps
     })();
 
     return () => { cancelled = true; };
-  }, [code, language]);
+  }, [code, language, resolvedTheme]);
 
   return (
     <div className="my-6 rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)" }}>
