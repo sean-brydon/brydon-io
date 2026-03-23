@@ -1,0 +1,287 @@
+---
+title: "svg particle morphing — from zero to playground"
+date: "2026-03-23"
+description: "a step-by-step tutorial building svg-to-particle morphing on canvas. starts with 100 dots on a grid, ends with a full interactive playground."
+---
+
+# svg particle morphing
+
+the homepage of this site has a particle animation — 2000 dots that form the shape of a heart, float gently, scatter when you hover, and morph into my initials when you click. i've had a lot of people ask how it works.
+
+so let's build it from scratch. we'll start with the absolute basics — drawing dots on a canvas — and layer on concepts one at a time until we have a full particle morphing system with physics, mouse interaction, and svg sampling.
+
+every step has a live interactive demo so you can see exactly what each piece adds.
+
+---
+
+## step 1: dots on a grid
+
+before anything fancy, let's just get particles on screen. a canvas, a loop, 100 circles in a 10×10 grid:
+
+```typescript
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+
+const cols = 10;
+const rows = 10;
+const spacingX = canvas.width / (cols + 1);
+const spacingY = canvas.height / (rows + 1);
+
+for (let row = 0; row < rows; row++) {
+  for (let col = 0; col < cols; col++) {
+    ctx.fillStyle = "rgba(99, 102, 241, 0.7)";
+    ctx.beginPath();
+    ctx.arc(
+      spacingX * (col + 1),
+      spacingY * (row + 1),
+      2, 0, Math.PI * 2
+    );
+    ctx.fill();
+  }
+}
+```
+
+<Step1Grid />
+
+nothing moves, nothing reacts. but this is the foundation — every particle effect starts here. 100 `arc()` calls, evenly spaced.
+
+---
+
+## step 2: random positions + animation
+
+grids are boring. let's scatter the particles randomly and give them life with a `requestAnimationFrame` loop. each particle gets a random `seed` so they float independently:
+
+```typescript
+const COUNT = 200;
+const px = new Float32Array(COUNT); // x positions (0-1)
+const py = new Float32Array(COUNT); // y positions (0-1)
+const seed = new Float32Array(COUNT);
+
+for (let i = 0; i < COUNT; i++) {
+  px[i] = Math.random();
+  py[i] = Math.random();
+  seed[i] = Math.random() * Math.PI * 2;
+}
+
+function draw(t) {
+  ctx.clearRect(0, 0, w, h);
+  for (let i = 0; i < COUNT; i++) {
+    const floatX = Math.sin(t * 0.4 + seed[i]) * 8;
+    const floatY = Math.cos(t * 0.3 + seed[i] * 1.3) * 6;
+    ctx.beginPath();
+    ctx.arc(px[i] * w + floatX, py[i] * h + floatY, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  requestAnimationFrame(draw);
+}
+```
+
+<Step2Random />
+
+two things to notice. first, we're using `Float32Array` instead of regular arrays — typed arrays are faster for the gpu and avoid garbage collection. second, each particle uses different sine/cosine frequencies (0.4 vs 0.3) with its own phase offset. this creates organic, non-uniform motion. if every particle used the same values, they'd drift in lockstep and look robotic.
+
+---
+
+## step 3: spring physics
+
+here's where it gets interesting. instead of particles floating randomly, what if they had somewhere to *go*? give each particle a **target position** and pull it there with a spring:
+
+```typescript
+// each frame, for each particle:
+const dx = target[i].x - position[i].x;
+const dy = target[i].y - position[i].y;
+
+velocity[i].x += dx * 0.03;  // spring force
+velocity[i].y += dy * 0.03;
+
+velocity[i].x *= 0.88;  // damping
+velocity[i].y *= 0.88;
+
+position[i].x += velocity[i].x;
+position[i].y += velocity[i].y;
+```
+
+the **spring force** (0.03) controls how aggressively particles chase their target. the **damping** (0.88) bleeds off velocity so they don't oscillate forever — each frame, the particle loses 12% of its speed.
+
+but what do those numbers actually *mean*? this graph simulates a single particle starting at position 0, chasing a target at position 1. the curve shows how it gets there over 120 frames:
+
+<DampingGraph />
+
+three things to read from this:
+
+- **low damping (0.80)** — critically damped. the particle reaches the target fast with almost no overshoot. feels stiff and mechanical
+- **medium damping (0.88)** — the sweet spot. slight overshoot, quick settle. feels responsive but organic
+- **high damping (0.95)** — underdamped. the particle overshoots, bounces back, oscillates. feels springy and playful
+
+drag the sliders to see how spring force and damping interact. high spring + low damping = snappy and precise. low spring + high damping = slow and wobbly.
+
+<Step3Spring />
+
+watch how the particles accelerate toward their targets, overshoot slightly, then settle. that's the spring-damper at work. every 3 seconds, the targets randomize and the particles scatter and regroup.
+
+this is the core mechanic. everything else builds on it.
+
+---
+
+## step 4: shape targets
+
+random targets are a good demo, but the real trick is arranging targets into recognizable shapes. if you place them in a circle, particles form a circle. if you place them in a grid, particles form a grid. **the particles don't know what shape they're making** — they just chase coordinates.
+
+```typescript
+// circle targets
+for (let i = 0; i < COUNT; i++) {
+  const angle = (i / COUNT) * Math.PI * 2;
+  const r = 0.3; // radius in normalized space
+  targetX[i] = 0.5 + Math.cos(angle) * r;
+  targetY[i] = 0.5 + Math.sin(angle) * r;
+}
+```
+
+<Step4Circle />
+
+click the canvas to toggle between circle and grid. same 500 particles, same physics — only the target positions change. the spring handles the transition automatically.
+
+---
+
+## step 5: mouse repulsion
+
+the particle system feels static until you can interact with it. mouse repulsion adds that physicality — particles scatter away from your cursor, then the spring pulls them back:
+
+```typescript
+const dx = particleScreenX - mouse.x;
+const dy = particleScreenY - mouse.y;
+const dist = Math.sqrt(dx * dx + dy * dy);
+
+if (dist < REPEL_RADIUS && dist > 0.1) {
+  const force = (1 - dist / REPEL_RADIUS) * REPEL_FORCE;
+  velocity.x += (dx / dist) * force;
+  velocity.y += (dy / dist) * force;
+}
+```
+
+the force is a linear falloff — full strength at the cursor, zero at the edge of the radius. the `dist > 0.1` guard prevents division by near-zero when the mouse is right on top of a particle.
+
+<Step5Mouse />
+
+hover over the heart. the magic is that repulsion and spring work *against* each other — the mouse pushes particles away, the spring pulls them back. remove either and the effect breaks. repulsion without spring scatters permanently. spring without repulsion is static and lifeless.
+
+---
+
+## step 6: svg sampling
+
+we can form circles and grids with math, but what about arbitrary shapes? the trick is to turn an SVG path into a list of (x, y) coordinates.
+
+the browser gives you two useful APIs:
+- `SVGPathElement.getTotalLength()` — the path's total perimeter
+- `SVGPathElement.getPointAtLength(t)` — the (x, y) at any distance along the path
+
+sample evenly along the edge, add random interior points, normalize to -1..1, and you have targets:
+
+```typescript
+function sampleSVGPath(pathData: string, count: number) {
+  // create a temporary SVG element
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", pathData);
+  svg.appendChild(path);
+  document.body.appendChild(svg);
+
+  const len = path.getTotalLength();
+  const pts = [];
+
+  // 60% on the edge (evenly spaced)
+  const edgeCount = Math.floor(count * 0.6);
+  for (let i = 0; i < edgeCount; i++) {
+    const pt = path.getPointAtLength((i / edgeCount) * len);
+    pts.push([pt.x, pt.y]);
+  }
+
+  // 40% interior fill (random within bounding box)
+  const bbox = path.getBBox();
+  while (pts.length < count) {
+    const x = bbox.x + Math.random() * bbox.width;
+    const y = bbox.y + Math.random() * bbox.height;
+    pts.push([x, y]);
+  }
+
+  document.body.removeChild(svg);
+
+  // normalize to centered -1..1 range
+  const cx = bbox.x + bbox.width / 2;
+  const cy = bbox.y + bbox.height / 2;
+  const scale = Math.max(bbox.width, bbox.height) / 2;
+  return pts.map(([x, y]) => [
+    (x - cx) / scale,
+    (y - cy) / scale,
+  ]);
+}
+```
+
+for **text**, you can't easily get path data from fonts in the browser. the workaround: render text to a hidden canvas, read the pixel data, and collect positions where alpha > 128:
+
+```typescript
+function sampleText(text: string, count: number) {
+  const tmp = document.createElement("canvas");
+  tmp.width = 400; tmp.height = 200;
+  const tc = tmp.getContext("2d");
+
+  tc.fillStyle = "#fff";
+  tc.font = "900 100px Arial";
+  tc.textAlign = "center";
+  tc.textBaseline = "middle";
+  tc.fillText(text, 200, 100);
+
+  const img = tc.getImageData(0, 0, 400, 200);
+  const raw = [];
+  for (let y = 0; y < 200; y += 2) {
+    for (let x = 0; x < 400; x += 2) {
+      if (img.data[(y * 400 + x) * 4 + 3] > 128) {
+        raw.push([(x / 400) * 2 - 1, (y / 200) * 2 - 1]);
+      }
+    }
+  }
+  return raw;
+}
+```
+
+try it — pick a preset or paste any SVG path data:
+
+<Step6SVG />
+
+---
+
+## step 7: the full playground
+
+everything above combined — svg sampling, spring physics, mouse repulsion, morphing, and interactive controls. adjust every parameter in real-time, try different shapes, and export the physics loop with your exact values:
+
+<SVGParticleMorphViz />
+
+---
+
+## tips for production
+
+a few things i learned shipping the particle hero on this site:
+
+- **cap particle count at ~2000 for mobile** — canvas2d is single-threaded. above 3000 you'll see frame drops on phones
+- **always use `Math.min(devicePixelRatio, 2)`** — retina screens have dpr of 2-3. the visual difference between 2x and 3x is negligible but the performance cost is real
+- **simple filled svgs work best** — thin strokes and complex paths produce sparse, unrecognizable particle clouds
+- **damping controls feel** — 0.88 is smooth and snappy. 0.95 is bouncy and playful. 0.80 is critically damped (no overshoot)
+- **add a velocity kick on morph** — without the random `v += random * 0.04` kick, particles slide linearly to new positions. the kick adds energy and makes the transition feel alive
+
+---
+
+## what i'd build next
+
+if i were extending this further:
+
+1. **colour per particle** — sample the svg's fill colour at each point and tint particles to match. a red heart morphing into a yellow star with colour blending mid-transit
+2. **nearest-neighbour morph mapping** — right now particle 47 always maps to target 47. a nearest-neighbour assignment would minimise total travel distance and make morphs look cleaner
+3. **WebGL instanced rendering** — for 10k+ particles, move to GPU instancing. canvas2d tops out around 3-5k
+4. **OffscreenCanvas** — move the render loop to a web worker so the main thread stays responsive during heavy layouts
+
+but honestly, the canvas2d version with 1500-2000 particles is 90% of the way there. the physics sell the effect more than any optimisation.
+
+---
+
+*the source for everything on this site — the particles, the playground, the mdx setup — is on [github](https://github.com/sean-brydon).*

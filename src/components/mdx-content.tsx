@@ -11,6 +11,9 @@ import InlineCode from "./mdx/InlineCode";
 import HWMViz from "./mdx/HWMViz";
 import DunningViz from "./mdx/DunningViz";
 import PermissionGraphViz from "./mdx/PermissionGraphViz";
+import SVGParticleMorphViz from "./mdx/SVGParticleMorphViz";
+import ParticleMorphPlayground from "./mdx/ParticleMorphPlayground";
+import { Step1Grid, Step2Random, DampingGraph, Step3Spring, Step4Circle, Step5Mouse, Step6SVG } from "./mdx/ParticleSteps";
 
 // Smart code component: detects fenced blocks vs inline
 function SmartCode(props: React.ComponentProps<"code"> & { children?: React.ReactNode }) {
@@ -53,6 +56,15 @@ const mdxComponents = {
   HWMViz,
   DunningViz,
   PermissionGraphViz,
+  SVGParticleMorphViz,
+  ParticleMorphPlayground,
+  Step1Grid,
+  Step2Random,
+  DampingGraph,
+  Step3Spring,
+  Step4Circle,
+  Step5Mouse,
+  Step6SVG,
   code: SmartCode,
   h1: (props: React.ComponentProps<"h1">) => (
     <h1 className="text-xl font-bold mt-10 mb-4" style={{ color: "var(--text)" }} {...props} />
