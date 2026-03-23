@@ -19,21 +19,31 @@ function StepCanvas({
     if (!cvs) return;
     const ctx = cvs.getContext("2d")!;
     const dpr = Math.min(window.devicePixelRatio, 2);
+    let cleanup: (() => void) | void;
+    let initialized = false;
 
     const resize = () => {
       const rect = cvs.getBoundingClientRect();
-      if (rect.width === 0) return;
+      if (rect.width === 0 || rect.height === 0) return;
       cvs.width = rect.width * dpr;
       cvs.height = rect.height * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
 
-    const cleanup = init(ctx, cvs);
+      // Initialize on first valid size (handles late mobile layout)
+      if (!initialized) {
+        initialized = true;
+        cleanup = init(ctx, cvs);
+      }
+    };
+
+    // ResizeObserver catches initial layout + any resizes
+    const obs = new ResizeObserver(resize);
+    obs.observe(cvs);
+    // Also try immediately in case already laid out
+    resize();
 
     return () => {
-      window.removeEventListener("resize", resize);
+      obs.disconnect();
       if (cleanup) cleanup();
     };
   }, [init]);
