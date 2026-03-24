@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { JetBrains_Mono, Lexend } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./components/theme-provider";
-import { Nav } from "@/components/nav";
-import { Footer } from "@/components/footer";
 import { A11yWidget } from "@/components/a11y-widget";
 
 const font = JetBrains_Mono({
@@ -18,10 +16,10 @@ const dyslexicFont = Lexend({
 
 export const metadata: Metadata = {
   title: {
-    default: "sean brydon",
-    template: "%s — sean brydon",
+    default: "brydon.io",
+    template: "%s — brydon.io",
   },
-  description: "developer from newcastle, england. building cal.com.",
+  description: "your personal dev portfolio, instantly.",
   metadataBase: new URL("https://brydon.io"),
 };
 
@@ -39,11 +37,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange={false}
         >
-          <div className="min-h-screen flex flex-col">
-            <Nav />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
+          {children}
           <A11yWidget />
         </ThemeProvider>
       </body>

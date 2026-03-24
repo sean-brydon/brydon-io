@@ -6,7 +6,11 @@ interface SlotsData {
   [date: string]: { time: string }[];
 }
 
-export function CalSlots() {
+interface CalSlotsProps {
+  calUsername?: string;
+}
+
+export function CalSlots({ calUsername = "sean" }: CalSlotsProps) {
   const [slots, setSlots] = useState<SlotsData>({});
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -22,7 +26,7 @@ export function CalSlots() {
     const endStr = end.toISOString().split("T")[0] + "T00:00:00.000Z";
 
     fetch(
-      `https://api.cal.com/v2/slots/available?startTime=${startStr}&endTime=${endStr}&eventTypeSlug=30min&usernameList%5B%5D=sean`
+      `https://api.cal.com/v2/slots/available?startTime=${startStr}&endTime=${endStr}&eventTypeSlug=30min&usernameList%5B%5D=${encodeURIComponent(calUsername)}`
     )
       .then((r) => r.json())
       .then((d) => {
@@ -34,7 +38,7 @@ export function CalSlots() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [calUsername]);
 
   if (loading) {
     return (
@@ -58,13 +62,13 @@ export function CalSlots() {
   if (dates.length === 0) {
     return (
       <a
-        href="https://i.cal.com/sean/30min"
+        href={`https://i.cal.com/${calUsername}/30min`}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 text-xs no-underline px-4 py-2.5 rounded-lg transition-opacity hover:opacity-80"
         style={{ background: "var(--accent)", color: "#fff" }}
       >
-        book a call — i.cal.com/sean
+        book a call — i.cal.com/{calUsername}
       </a>
     );
   }
@@ -110,7 +114,7 @@ export function CalSlots() {
             minute: "2-digit",
             hour12: true,
           }).toLowerCase();
-          const bookUrl = `https://i.cal.com/sean/30min?overlayCalendar=true&date=${selectedDate}&layout=month_view&slot=${encodeURIComponent(slot.time)}`;
+          const bookUrl = `https://i.cal.com/${calUsername}/30min?overlayCalendar=true&date=${selectedDate}&layout=month_view&slot=${encodeURIComponent(slot.time)}`;
 
           return (
             <a
@@ -147,7 +151,7 @@ export function CalSlots() {
           30 min · powered by cal.com
         </span>
         <a
-          href="https://i.cal.com/sean/30min"
+          href={`https://i.cal.com/${calUsername}/30min`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-[10px] no-underline"
