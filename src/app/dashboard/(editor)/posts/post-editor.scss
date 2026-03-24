@@ -1,0 +1,78 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+
+// Scoped CSS variables for the tiptap toolbar (must be on body for tiptap internals)
+body {
+  --tt-toolbar-height: 44px;
+  --tt-theme-text: var(--tt-gray-light-900);
+
+  .dark & {
+    --tt-theme-text: var(--tt-gray-dark-900);
+  }
+}
+
+// ─── PostEditor wrapper: full-page overlay ──────────────────────────────────────
+.post-editor-overlay {
+  // Tiptap ProseMirror font
+  .tiptap.ProseMirror {
+    font-family: "DM Sans", sans-serif;
+    outline: none;
+  }
+
+  // Scrollbar styling within the editor overlay only
+  ::-webkit-scrollbar {
+    width: 0.25rem;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--tt-scrollbar-color) transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--tt-scrollbar-color);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+// Editor content area — no max-width constraint from simple-editor
+.post-editor-content {
+  width: 100%;
+
+  .tiptap.ProseMirror.simple-editor {
+    min-height: 50vh;
+    padding-bottom: 30vh;
+  }
+}
+
+// ─── Title field ────────────────────────────────────────────────────────────────
+.post-editor-title {
+  font-family: "Inter", sans-serif;
+  font-weight: 700;
+  font-optical-sizing: auto;
+  caret-color: var(--accent, #3b82f6);
+
+  &::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+}
+
+// ─── Metadata drawer ───────────────────────────────────────────────────────────
+.post-editor-meta {
+  animation: post-editor-slide-down 0.15s ease-out;
+}
+
+@keyframes post-editor-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

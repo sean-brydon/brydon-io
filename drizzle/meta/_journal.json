@@ -15,6 +15,34 @@
       "when": 1774367966232,
       "tag": "0001_flimsy_kabuki",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774373774632,
+      "tag": "0002_even_magneto",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774376248996,
+      "tag": "0003_freezing_galactus",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774377076760,
+      "tag": "0004_add_job_company_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774617600000,
+      "tag": "0005_add_profile_editor_columns",
+      "breakpoints": true
     }
   ]
 }

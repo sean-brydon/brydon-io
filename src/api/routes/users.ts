@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
+import DOMPurify from "isomorphic-dompurify";
 import { db } from "@/db";
 import {
   users,
@@ -8,6 +9,72 @@ import {
   workExperiences,
 } from "@/db/schema";
 import { authMiddleware } from "@/api/middleware";
+
+/**
+ * Sanitize profile HTML to prevent stored XSS.
+ * Allows standard rich-text tags plus tiptap custom block nodes
+ * (currently-block, tech-stack-block, github-block, contact-block,
+ * education-block, hero-block, image-upload, horizontal-rule, etc.) which use
+ * `div[data-type="..."]` and associated data-* attributes for state.
+ */
+function sanitizeProfileHtml(dirty: string): string {
+  return DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: [
+      // Block elements
+      "p", "h1", "h2", "h3", "h4", "h5", "h6",
+      "blockquote", "pre", "code", "hr", "br",
+      "ul", "ol", "li",
+      "table", "thead", "tbody", "tr", "th", "td",
+      "div", "figure", "figcaption",
+      // Inline elements
+      "a", "strong", "em", "b", "i", "u", "s", "del",
+      "sub", "sup", "mark", "span",
+      // Media
+      "img",
+      // Tiptap task list elements
+      "input", "label",
+    ],
+    ALLOWED_ATTR: [
+      // Links
+      "href", "target", "rel",
+      // Images
+      "src", "alt", "title", "width", "height", "loading",
+      // Styling hooks
+      "class", "id",
+      // Tables
+      "colspan", "rowspan",
+      // Tiptap core data attributes
+      "data-type",
+      // Tiptap custom block data attributes
+      "data-groups",             // tech-stack-block
+      "data-categories",         // currently-block
+      "data-entries",            // education-block
+      "data-username",           // github-block
+      "data-cal-username",       // contact-block
+      "data-description",        // contact-block
+      "data-background-color",   // node-background extension
+      "data-checked",            // task list
+      "data-color",              // highlight / color
+      "data-drag-handle",        // drag handle
+      // hero-block data attributes
+      "data-shape1-type",        // hero-block
+      "data-shape1-text",        // hero-block
+      "data-shape1-svg",         // hero-block
+      "data-shape2-type",        // hero-block
+      "data-shape2-text",        // hero-block
+      "data-shape2-svg",         // hero-block
+      "data-height",             // hero-block
+      "data-particle-count",     // hero-block
+      "data-show-badge",         // hero-block
+      "data-badge-text",         // hero-block
+      // Tiptap text alignment & highlights use inline styles
+      "style",
+      // Task list checkbox attributes
+      "type", "checked", "disabled",
+    ],
+    ALLOW_DATA_ATTR: false,
+  });
+}
 
 const app = new Hono()
 
@@ -44,6 +111,7 @@ const app = new Hono()
       "twitterUsername",
       "linkedinUrl",
       "image",
+      "profileHtml",
     ] as const;
 
     const updates: Record<string, unknown> = {};
@@ -55,6 +123,11 @@ const app = new Hono()
 
     if (Object.keys(updates).length === 0) {
       return c.json({ error: "No valid fields to update" }, 400);
+    }
+
+    // Sanitize profile HTML to prevent stored XSS
+    if (typeof updates.profileHtml === "string") {
+      updates.profileHtml = sanitizeProfileHtml(updates.profileHtml);
     }
 
     // If username is being changed, check uniqueness

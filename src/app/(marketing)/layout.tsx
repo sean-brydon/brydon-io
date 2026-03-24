@@ -4,14 +4,19 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Marketing header */}
-      <header className="sticky top-0 z-40 backdrop-blur-md" style={{ background: "color-mix(in srgb, var(--bg) 80%, transparent)" }}>
-        <nav className="max-w-[640px] mx-auto px-5 h-14 flex items-center justify-between">
+      <header
+        className="sticky top-0 z-40 backdrop-blur-md"
+        style={{
+          background: "color-mix(in srgb, var(--bg) 80%, transparent)",
+        }}
+      >
+        <nav className="max-w-[960px] mx-auto px-5 h-14 flex items-center justify-between">
           <a
             href="/"
             className="text-sm font-semibold no-underline transition-colors"
             style={{ color: "var(--text)" }}
           >
-            brydon.io
+            devl.dev
           </a>
           <div className="flex items-center gap-5">
             <a
@@ -35,21 +40,30 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
 
       {/* Marketing footer */}
-      <footer className="max-w-[640px] mx-auto px-5 py-12">
+      <footer className="max-w-[960px] mx-auto px-5 py-12 w-full">
         <div
           className="flex items-center justify-between text-xs gap-4 flex-wrap"
           style={{ color: "var(--text-muted)", opacity: 0.5 }}
         >
-          <span>© {new Date().getFullYear()} brydon.io</span>
+          <span>© 2026 devl.dev</span>
           <div className="flex gap-4">
             <a
-              href="https://github.com/sean-brydon"
+              href="https://github.com/devl-dev"
               target="_blank"
               rel="noopener noreferrer"
               className="no-underline hover:opacity-80 transition-opacity"
               style={{ color: "var(--text-muted)" }}
             >
               github
+            </a>
+            <a
+              href="https://x.com/devl_dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="no-underline hover:opacity-80 transition-opacity"
+              style={{ color: "var(--text-muted)" }}
+            >
+              x/twitter
             </a>
           </div>
         </div>

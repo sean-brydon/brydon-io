@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { MDXContent } from "@/components/mdx-content";
+import { PostContent } from "@/components/post-content";
+import { ReactionBar } from "@/components/reaction-bar";
+import { CommentsSection } from "@/components/comments-section";
+import { ViewTracker } from "@/components/view-tracker";
 import { db } from "@/db";
-import { posts, users } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { posts, users, postViews } from "@/db/schema";
+import { eq, and, count } from "drizzle-orm";
 
 interface Props {
   params: Promise<{ username: string; slug: string }>;
@@ -55,8 +58,17 @@ export default async function UserBlogPostPage({ params }: Props) {
 
   if (!post) notFound();
 
+  // Fetch view count
+  const [viewResult] = await db
+    .select({ count: count() })
+    .from(postViews)
+    .where(eq(postViews.postId, post.id));
+  const viewCount = viewResult?.count ?? 0;
+
   return (
     <div className="max-w-[640px] mx-auto px-5 py-12">
+      <ViewTracker postId={post.id} />
+
       <nav className="mb-8">
         <Link
           href={`/${username}/blog`}
@@ -80,13 +92,24 @@ export default async function UserBlogPostPage({ params }: Props) {
                 day: "numeric",
               })}
             </time>
+            {viewCount > 0 && <span>· {viewCount} view{viewCount !== 1 ? "s" : ""}</span>}
           </div>
         </header>
 
         <div className="prose-custom">
-          <MDXContent source={post.content} />
+          <PostContent source={post.content} />
         </div>
       </article>
+
+      {/* Reactions */}
+      <div className="mt-10 pt-8" style={{ borderTop: "1px solid var(--border)" }}>
+        <ReactionBar postId={post.id} />
+      </div>
+
+      {/* Comments */}
+      <div className="mt-10 pt-8" style={{ borderTop: "1px solid var(--border)" }}>
+        <CommentsSection postId={post.id} />
+      </div>
     </div>
   );
 }

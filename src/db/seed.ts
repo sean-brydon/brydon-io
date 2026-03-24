@@ -8,12 +8,14 @@ config({ path: ".env.local" });
 
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { eq } from "drizzle-orm";
 import * as schema from "./schemas";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, username } from "better-auth/plugins";
 import * as fs from "fs";
 import * as path from "path";
+import { getDefaultProfileContent } from "../lib/default-profile-content";
 
 // ── Create DB + Auth inline (no @/ imports to avoid hoisting issues) ──
 const client = postgres(process.env.DATABASE_URL!);
@@ -87,6 +89,13 @@ async function seed() {
   console.log(`✓ User: sean (${userId})`);
   console.log(`  email: sean@brydon.io`);
   console.log(`  password: ${SEED_PASSWORD}`);
+
+  // Set profileHtml for the tiptap-based profile renderer
+  await db
+    .update(schema.users)
+    .set({ profileHtml: getDefaultProfileContent() })
+    .where(eq(schema.users.id, userId));
+  console.log("✓ Profile HTML set");
 
   // 2. Blog posts from content/blog/
   const blogDir = path.join(process.cwd(), "content/blog");

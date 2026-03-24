@@ -1,0 +1,36 @@
+.currently-block {
+  margin: 1rem 0;
+  user-select: none;
+
+  &__editor {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--card-bg) 50%, transparent);
+    border: 1px dashed var(--border);
+  }
+
+  &__category {
+    background: color-mix(in srgb, var(--card-bg) 30%, transparent);
+  }
+
+  &__display {
+    padding: 0;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1.5rem;
+  }
+
+  &__grid-item {
+    min-width: 0;
+  }
+
+  /* Selection highlight when the node is selected in the editor */
+  &.ProseMirror-selectednode {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 0.75rem;
+  }
+}

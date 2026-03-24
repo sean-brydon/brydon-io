@@ -1,0 +1,142 @@
+/* ── Education Block — Tiptap Node Extension ────────────────────── */
+
+.education-block {
+  margin: 1rem 0;
+}
+
+/* ── Read mode ──────────────────────────────────────────────────── */
+.education-block--read {
+  .education-block__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .education-block__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--border, hsl(0 0% 90%));
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .education-block__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .education-block__school {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text, #111);
+  }
+
+  .education-block__years {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--text-muted, #888);
+    white-space: nowrap;
+  }
+
+  .education-block__detail {
+    font-size: 0.75rem;
+    color: var(--text-muted, #888);
+  }
+}
+
+/* ── Edit mode ──────────────────────────────────────────────────── */
+.education-block--edit {
+  .education-block__entries {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .education-block__entry {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border, hsl(0 0% 90%));
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .education-block__entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .education-block__entry-label {
+    font-size: 0.625rem;
+    color: var(--text-muted, #888);
+    opacity: 0.5;
+  }
+
+  .education-block__remove-btn {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    color: #ef4444;
+    background: none;
+    border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
+    cursor: pointer;
+    line-height: 1.4;
+
+    &:hover {
+      background: color-mix(in srgb, #ef4444 8%, transparent);
+    }
+  }
+
+  .education-block__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .education-block__input {
+    width: 100%;
+    font-size: 0.75rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: 0.5rem;
+    outline: none;
+    background: var(--card-bg, #fff);
+    color: var(--text, #111);
+    border: 1px solid var(--border, hsl(0 0% 90%));
+
+    &::placeholder {
+      color: var(--text-muted, #888);
+      opacity: 0.5;
+    }
+
+    &:focus {
+      border-color: var(--accent, #3b82f6);
+    }
+  }
+
+  .education-block__input--full {
+    grid-column: 1 / -1;
+  }
+
+  .education-block__add-btn {
+    margin-top: 0.75rem;
+    font-size: 0.625rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    color: var(--accent, #3b82f6);
+    background: none;
+    border: 1px solid var(--border, hsl(0 0% 90%));
+    cursor: pointer;
+    line-height: 1.4;
+
+    &:hover {
+      background: color-mix(in srgb, var(--accent, #3b82f6) 6%, transparent);
+    }
+  }
+}

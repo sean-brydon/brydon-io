@@ -7,6 +7,15 @@ import posts from "@/api/routes/posts";
 import projects from "@/api/routes/projects";
 import work from "@/api/routes/work";
 import sections from "@/api/routes/sections";
+import follow from "@/api/routes/follow";
+import reactions from "@/api/routes/reactions";
+import comments from "@/api/routes/comments";
+import feed from "@/api/routes/feed";
+import notifications from "@/api/routes/notifications";
+import billing from "@/api/routes/billing";
+import companies from "@/api/routes/companies";
+import jobs from "@/api/routes/jobs";
+import views from "@/api/routes/views";
 
 // ─── Main Hono app ───────────────────────────────────────────────────
 const app = new Hono().basePath("/api");
@@ -42,6 +51,15 @@ app.route("/posts", posts);
 app.route("/projects", projects);
 app.route("/work", work);
 app.route("/sections", sections);
+app.route("/follow", follow);
+app.route("/reactions", reactions);
+app.route("/comments", comments);
+app.route("/feed", feed);
+app.route("/notifications", notifications);
+app.route("/billing", billing);
+app.route("/companies", companies);
+app.route("/jobs", jobs);
+app.route("/views", views);
 
 // ─── 404 fallback ────────────────────────────────────────────────────
 app.notFound((c) =>

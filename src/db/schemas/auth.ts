@@ -3,7 +3,14 @@
  * Re-generate with: npx @better-auth/cli generate --output ./src/db/schemas/auth.ts
  */
 
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  index,
+  jsonb,
+} from "drizzle-orm/pg-core";
 
 // ─── Helper ──────────────────────────────────────────────────────────
 const timestamps = {
@@ -40,6 +47,10 @@ export const users = pgTable("users", {
   twitterUsername: text("twitter_username"),
   linkedinUrl: text("linkedin_url"),
   websiteUrl: text("website_url"),
+
+  // ── Profile editor (tiptap) ──
+  profileHtml: text("profile_html"),
+  profileDocument: jsonb("profile_document").$type<Record<string, unknown>>(),
 });
 
 export const sessions = pgTable(

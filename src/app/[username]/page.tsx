@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq, and, desc } from "drizzle-orm";
+import { headers } from "next/headers";
+import { eq, and, desc, count } from "drizzle-orm";
 
 import { db } from "@/db";
-import { users, projects, sections } from "@/db/schema";
+import { users, projects, sections, followers } from "@/db/schema";
+import { auth } from "@/lib/auth";
 import { Particles } from "@/components/particles";
 import { GitHubContributions } from "@/components/github-contributions";
 import { ProjectCard } from "@/components/project-card";
 import { HobbyCategory } from "@/components/hobby-category";
+import { FollowButton } from "@/components/follow-button";
+import { ProfileRenderer } from "@/components/profile-renderer";
 
 // ── Types for section configs ────────────────────────────────────────
 interface HobbyItem {
@@ -46,8 +50,15 @@ export default async function UserHomePage({
     notFound();
   }
 
-  // Fetch projects and visible sections in parallel
-  const [userProjects, userSections] = await Promise.all([
+  // Check if current viewer is logged in
+  let viewerId: string | null = null;
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    viewerId = session?.user?.id ?? null;
+  } catch {}
+
+  // Fetch projects, sections, follower count, and follow status in parallel
+  const [userProjects, userSections, [followerResult], isFollowing] = await Promise.all([
     db.query.projects.findMany({
       where: eq(projects.userId, user.id),
       orderBy: [desc(projects.featured)],
@@ -56,7 +67,16 @@ export default async function UserHomePage({
       where: and(eq(sections.userId, user.id), eq(sections.visible, true)),
       orderBy: [sections.order],
     }),
+    db.select({ count: count() }).from(followers).where(eq(followers.followingId, user.id)),
+    viewerId
+      ? db.query.followers.findFirst({
+          where: and(eq(followers.followerId, viewerId), eq(followers.followingId, user.id)),
+        }).then((r) => !!r)
+      : Promise.resolve(false),
   ]);
+
+  const followerCount = followerResult?.count ?? 0;
+  const isOwnProfile = viewerId === user.id;
 
   const displayName = user.displayUsername ?? user.name;
   const avatarUrl = user.image;
@@ -106,12 +126,22 @@ export default async function UserHomePage({
 
         {user.bio && (
           <p
-            className="text-sm leading-relaxed mb-6"
+            className="text-sm leading-relaxed mb-4"
             style={{ color: "var(--text-muted)" }}
           >
             {user.bio}
           </p>
         )}
+
+        {/* Follower count + follow button */}
+        <div className="flex items-center gap-3 mb-6">
+          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <strong style={{ color: "var(--text)" }}>{followerCount}</strong> follower{followerCount !== 1 ? "s" : ""}
+          </span>
+          {viewerId && !isOwnProfile && (
+            <FollowButton userId={user.id} initialFollowing={isFollowing} followerCount={followerCount} />
+          )}
+        </div>
 
         <div className="flex gap-4 text-xs">
           <Link
@@ -177,56 +207,62 @@ export default async function UserHomePage({
         </section>
       )}
 
-      {/* ── Dynamic Sections ──────────────────────── */}
-      {userSections.map((section) => {
-        if (section.type === "github_contributions") {
-          const config = section.config as unknown as GitHubContributionsConfig;
-          const ghUsername = config?.username ?? githubUsername;
-          if (!ghUsername) return null;
+      {/* ── Profile Content / Dynamic Sections ─────── */}
+      {user.profileHtml ? (
+        <section className="mb-20">
+          <ProfileRenderer content={user.profileHtml} />
+        </section>
+      ) : (
+        userSections.map((section) => {
+          if (section.type === "github_contributions") {
+            const config = section.config as unknown as GitHubContributionsConfig;
+            const ghUsername = config?.username ?? githubUsername;
+            if (!ghUsername) return null;
 
-          return (
-            <section key={section.id} className="mb-20">
-              <h2
-                className="text-xs uppercase tracking-wider mb-6"
-                style={{ color: "var(--text-muted)", opacity: 0.5 }}
-              >
-                {section.title}
-              </h2>
-              <GitHubContributions username={ghUsername} />
-            </section>
-          );
-        }
+            return (
+              <section key={section.id} className="mb-20">
+                <h2
+                  className="text-xs uppercase tracking-wider mb-6"
+                  style={{ color: "var(--text-muted)", opacity: 0.5 }}
+                >
+                  {section.title}
+                </h2>
+                <GitHubContributions username={ghUsername} />
+              </section>
+            );
+          }
 
-        if (section.type === "currently") {
-          const config = section.config as unknown as CurrentlyConfig;
-          const categories = config?.categories;
-          if (!categories || categories.length === 0) return null;
+          if (section.type === "currently") {
+            const config = section.config as unknown as CurrentlyConfig;
+            const categories = config?.categories;
+            if (!categories || categories.length === 0) return null;
 
-          return (
-            <section key={section.id} className="mb-12">
-              <h2
-                className="text-xs uppercase tracking-wider mb-6"
-                style={{ color: "var(--text-muted)", opacity: 0.5 }}
-              >
-                {section.title}
-              </h2>
+            return (
+              <section key={section.id} className="mb-12">
+                <h2
+                  className="text-xs uppercase tracking-wider mb-6"
+                  style={{ color: "var(--text-muted)", opacity: 0.5 }}
+                >
+                  {section.title}
+                </h2>
 
-              <div className="grid grid-cols-2 gap-8">
-                {categories.map((category) => (
-                  <HobbyCategory
-                    key={category.label}
-                    label={category.label}
-                    items={category.items}
-                  />
-                ))}
-              </div>
-            </section>
-          );
-        }
+                <div className="grid grid-cols-2 gap-8">
+                  {categories.map((category) => (
+                    <HobbyCategory
+                      key={category.label}
+                      label={category.label}
+                      items={category.items}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          }
 
-        // "contact" type is shown on the work page — skip here
-        return null;
-      })}
+          // "contact" type is shown on the work page — skip here
+          return null;
+        })
+      )}
     </div>
   );
 }

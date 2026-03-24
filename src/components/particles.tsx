@@ -3,12 +3,39 @@
 import { useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 
-export function Particles({ className }: { className?: string }) {
+export interface ParticlesProps {
+  className?: string;
+  /** Shape type for the initial shape: "heart" | "text" | "svg" (default: "heart") */
+  shape1Type?: string;
+  /** Text to render when shape1Type is "text" */
+  shape1Text?: string;
+  /** SVG path data when shape1Type is "svg" */
+  shape1Svg?: string;
+  /** Shape type for the morph target: "heart" | "text" | "svg" (default: "text") */
+  shape2Type?: string;
+  /** Text to render when shape2Type is "text" (default: "S B") */
+  shape2Text?: string;
+  /** SVG path data when shape2Type is "svg" */
+  shape2Svg?: string;
+  /** Number of particles (default: 2000) */
+  particleCount?: number;
+}
+
+export function Particles({
+  className,
+  shape1Type = "heart",
+  shape1Text = "",
+  shape1Svg = "",
+  shape2Type = "text",
+  shape2Text = "S B",
+  shape2Svg = "",
+  particleCount: particleCountProp = 2000,
+}: ParticlesProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { resolvedTheme } = useTheme();
   const themeRef = useRef(resolvedTheme);
   const mouseRef = useRef({ x: -9999, y: -9999 });
-  const shapeRef = useRef<"heart" | "sb">("heart");
+  const shapeRef = useRef<1 | 2>(1);
 
   useEffect(() => {
     themeRef.current = resolvedTheme;
@@ -22,7 +49,7 @@ export function Particles({ className }: { className?: string }) {
     let raf = 0;
     let dead = false;
 
-    const COUNT = 2000;
+    const COUNT = particleCountProp;
 
     // ── Heart: parametric formula ──
     // Uses screen-space convention: +y = down
@@ -45,9 +72,9 @@ export function Particles({ className }: { className?: string }) {
       return pts;
     };
 
-    // ── SB: sample from hidden canvas ──
+    // ── Text: sample from hidden canvas ──
     // Uses screen-space convention: +y = down (no Y flip)
-    const sampleSB = (): [number, number][] => {
+    const sampleTextShape = (text: string): [number, number][] => {
       const tmp = document.createElement("canvas");
       const W = 400;
       const H = 200;
@@ -58,7 +85,7 @@ export function Particles({ className }: { className?: string }) {
       tc.font = "900 100px Arial, Helvetica, sans-serif";
       tc.textAlign = "center";
       tc.textBaseline = "middle";
-      tc.fillText("S B", W / 2, H / 2);
+      tc.fillText(text, W / 2, H / 2);
       const img = tc.getImageData(0, 0, W, H);
       const pts: [number, number][] = [];
       for (let y = 0; y < H; y += 2) {
@@ -72,11 +99,73 @@ export function Particles({ className }: { className?: string }) {
       return pts;
     };
 
-    const heartPts = sampleHeart();
-    const sbPts = sampleSB();
+    // ── SVG: sample points along SVG path data ──
+    const sampleSvgShape = (pathData: string): [number, number][] => {
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgNS, "svg");
+      svg.style.position = "absolute";
+      svg.style.left = "-9999px";
+      svg.style.top = "-9999px";
+      svg.style.width = "0";
+      svg.style.height = "0";
+      document.body.appendChild(svg);
 
-    const getTargets = (shape: "heart" | "sb"): [number, number][] => {
-      const src = shape === "heart" ? heartPts : sbPts;
+      const pathEl = document.createElementNS(svgNS, "path");
+      pathEl.setAttribute("d", pathData);
+      svg.appendChild(pathEl);
+
+      const totalLen = pathEl.getTotalLength();
+      const numSamples = Math.max(200, Math.floor(totalLen));
+      const rawPoints: [number, number][] = [];
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+      for (let i = 0; i <= numSamples; i++) {
+        const pt = pathEl.getPointAtLength((i / numSamples) * totalLen);
+        rawPoints.push([pt.x, pt.y]);
+        minX = Math.min(minX, pt.x);
+        minY = Math.min(minY, pt.y);
+        maxX = Math.max(maxX, pt.x);
+        maxY = Math.max(maxY, pt.y);
+      }
+
+      document.body.removeChild(svg);
+
+      if (rawPoints.length === 0) return [[0, 0]];
+
+      const bw = maxX - minX;
+      const bh = maxY - minY;
+      const bmax = Math.max(bw, bh) || 1;
+      const pts: [number, number][] = [];
+
+      for (const pt of rawPoints) {
+        const nx = (pt[0] - minX - bw / 2) / (bmax / 2);
+        const ny = (pt[1] - minY - bh / 2) / (bmax / 2);
+        pts.push([nx, ny]);
+      }
+
+      // Fill points: jittered versions of outline points toward center
+      const fillCount = Math.floor(rawPoints.length * 0.6);
+      for (let i = 0; i < fillCount; i++) {
+        const base = pts[i % pts.length];
+        const shrink = Math.sqrt(Math.random()) * 0.85;
+        pts.push([base[0] * shrink, base[1] * shrink]);
+      }
+
+      return pts;
+    };
+
+    // ── Generic shape sampler ──
+    const sampleShape = (type: string, text: string, svg: string): [number, number][] => {
+      if (type === "text" && text) return sampleTextShape(text);
+      if (type === "svg" && svg) return sampleSvgShape(svg);
+      return sampleHeart(); // "heart" or fallback
+    };
+
+    const shape1Pts = sampleShape(shape1Type, shape1Text, shape1Svg);
+    const shape2Pts = sampleShape(shape2Type, shape2Text, shape2Svg);
+
+    const getTargets = (which: 1 | 2): [number, number][] => {
+      const src = which === 1 ? shape1Pts : shape2Pts;
       const targets: [number, number][] = [];
       for (let i = 0; i < COUNT; i++) {
         const pt = src[i % src.length];
@@ -98,7 +187,7 @@ export function Particles({ className }: { className?: string }) {
     const seed = new Float32Array(COUNT);
     const psize = new Float32Array(COUNT);
 
-    const initTargets = getTargets("heart");
+    const initTargets = getTargets(1);
     for (let i = 0; i < COUNT; i++) {
       px[i] = (Math.random() - 0.5) * 3;
       py[i] = (Math.random() - 0.5) * 3;
@@ -110,8 +199,8 @@ export function Particles({ className }: { className?: string }) {
       psize[i] = 0.8 + Math.random() * 1.0;
     }
 
-    const morphTo = (shape: "heart" | "sb") => {
-      const newTargets = getTargets(shape);
+    const morphTo = (which: 1 | 2) => {
+      const newTargets = getTargets(which);
       for (let i = 0; i < COUNT; i++) {
         tx[i] = newTargets[i][0];
         ty[i] = newTargets[i][1];
@@ -121,7 +210,7 @@ export function Particles({ className }: { className?: string }) {
     };
 
     const handleClick = () => {
-      shapeRef.current = shapeRef.current === "heart" ? "sb" : "heart";
+      shapeRef.current = shapeRef.current === 1 ? 2 : 1;
       morphTo(shapeRef.current);
     };
 
@@ -244,7 +333,8 @@ export function Particles({ className }: { className?: string }) {
       cvs.removeEventListener("mousemove", handleMouseMove);
       cvs.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shape1Type, shape1Text, shape1Svg, shape2Type, shape2Text, shape2Svg, particleCountProp]);
 
   return (
     <canvas

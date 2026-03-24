@@ -1,0 +1,99 @@
+.contact-block {
+  margin: 1rem 0;
+
+  &--edit {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background: var(--card-bg);
+  }
+
+  &--read {
+    // No wrapper styling in read mode — CalSlots handles its own chrome
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  &__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  &__fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  &__field-label {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+  }
+
+  &__input {
+    width: 100%;
+    font-size: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s ease;
+
+    &::placeholder {
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+
+    &:focus {
+      border-color: var(--accent);
+    }
+  }
+
+  &__preview {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  &__preview-label {
+    display: block;
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+    opacity: 0.6;
+  }
+
+  &__description {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0 0 0.75rem;
+    line-height: 1.5;
+  }
+
+  &__empty {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    opacity: 0.5;
+    padding: 1rem;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 0.5rem;
+  }
+}

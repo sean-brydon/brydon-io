@@ -1,8 +1,40 @@
 import { Hono } from "hono";
 import { eq, and, desc } from "drizzle-orm";
+import DOMPurify from "isomorphic-dompurify";
 import { db } from "@/db";
 import { users, posts } from "@/db/schema";
 import { authMiddleware } from "@/api/middleware";
+
+/**
+ * Sanitize HTML content to prevent XSS attacks.
+ * Allows standard rich-text tags produced by the Novel editor
+ * while stripping dangerous elements like <script>, event handlers, etc.
+ */
+function sanitizeHtml(dirty: string): string {
+  return DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: [
+      // Block elements
+      "p", "h1", "h2", "h3", "h4", "h5", "h6",
+      "blockquote", "pre", "code", "hr", "br",
+      "ul", "ol", "li",
+      "table", "thead", "tbody", "tr", "th", "td",
+      "div", "figure", "figcaption",
+      // Inline elements
+      "a", "strong", "em", "b", "i", "u", "s", "del",
+      "sub", "sup", "mark", "span",
+      // Media
+      "img",
+    ],
+    ALLOWED_ATTR: [
+      "href", "target", "rel",       // links
+      "src", "alt", "title", "width", "height", "loading", // images
+      "class", "id",                  // styling hooks
+      "colspan", "rowspan",           // tables
+      "data-type",                    // editor metadata
+    ],
+    ALLOW_DATA_ATTR: false,
+  });
+}
 
 const app = new Hono()
 
@@ -94,6 +126,8 @@ const app = new Hono()
 
     const postStatus = status ?? "draft";
 
+    const sanitizedContent = content ? sanitizeHtml(content) : "";
+
     const [post] = await db
       .insert(posts)
       .values({
@@ -101,7 +135,7 @@ const app = new Hono()
         userId,
         title,
         slug,
-        content: content ?? "",
+        content: sanitizedContent,
         description: description ?? null,
         status: postStatus,
         coverImage: coverImage ?? null,
@@ -143,6 +177,11 @@ const app = new Hono()
       if (body[field] !== undefined) {
         updates[field] = body[field];
       }
+    }
+
+    // Sanitize HTML content to prevent XSS
+    if (typeof updates.content === "string") {
+      updates.content = sanitizeHtml(updates.content);
     }
 
     // Auto-set publishedAt when publishing for the first time

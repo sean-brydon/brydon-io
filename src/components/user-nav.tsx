@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./theme-toggle";
+import { NotificationBell } from "./notification-bell";
 import type { UserProfile } from "@/app/[username]/layout";
 
 interface UserNavProps {
@@ -57,6 +58,7 @@ export function UserNav({ user }: UserNavProps) {
               </Link>
             );
           })}
+          <NotificationBell />
           <ThemeToggle />
         </div>
       </nav>

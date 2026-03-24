@@ -1,0 +1,104 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+
+// Scoped CSS variables for the tiptap toolbar (must be on body for tiptap internals)
+body {
+  --tt-toolbar-height: 44px;
+  --tt-theme-text: var(--tt-gray-light-900);
+
+  .dark & {
+    --tt-theme-text: var(--tt-gray-dark-900);
+  }
+}
+
+// ─── ProfileEditor wrapper: full-page overlay ───────────────────────────────────
+.profile-editor-overlay {
+  // Tiptap ProseMirror font
+  .tiptap.ProseMirror {
+    font-family: "DM Sans", sans-serif;
+    outline: none;
+  }
+
+  // Scrollbar styling within the editor overlay only
+  ::-webkit-scrollbar {
+    width: 0.25rem;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--tt-scrollbar-color) transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--tt-scrollbar-color);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+// Editor content area
+.profile-editor-content {
+  width: 100%;
+
+  .tiptap.ProseMirror.simple-editor {
+    min-height: 50vh;
+    padding-bottom: 30vh;
+  }
+}
+
+// ─── Sections dropdown ──────────────────────────────────────────────────────────
+.profile-editor-sections-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.profile-editor-sections-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 200px;
+  padding: 4px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-bg, var(--bg));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  animation: profile-editor-slide-down 0.12s ease-out;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+
+    &:hover {
+      background: var(--border);
+    }
+
+    .sections-menu-emoji {
+      font-size: 14px;
+      width: 20px;
+      text-align: center;
+    }
+  }
+}
+
+@keyframes profile-editor-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
