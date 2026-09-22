@@ -113,8 +113,12 @@ export function PhotoBooth({ posts }: { posts: PostLink[] }) {
       setFlashKey((k) => k + 1);
       setPrinting(photo);
 
-      thumbnail(blob)
-        .catch(() => null)
+      // The thumbnail is a nice-to-have: never let a slow or stuck encode
+      // hold up the upload itself.
+      Promise.race([
+        thumbnail(blob).catch(() => null),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+      ])
         .then((thumb) => add({ ...photo, blob, thumb }))
         .catch((err) => {
           const retryAfter =

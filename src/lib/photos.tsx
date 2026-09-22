@@ -103,7 +103,14 @@ function ConvexPhotos({ children }: { children: React.ReactNode }) {
         put(urls.full, blob),
         thumb ? put(urls.thumb, thumb) : undefined,
       ]);
-      await save({ clientId, sessionId: session, handle, storageId, thumbId });
+      const saved = await save({
+        clientId,
+        sessionId: session,
+        handle,
+        storageId,
+        thumbId,
+      });
+      if (!saved) throw new Error("Photo rejected by upload checks");
     },
     [save],
   );

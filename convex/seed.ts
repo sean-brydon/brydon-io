@@ -8,11 +8,12 @@ const PREFIX = "seed-";
 /**
  * Dev only: fill the table with placeholder photos from picsum.photos.
  *   npx convex run seed:photos '{"count":80}'
+ *   npx convex run seed:photos '{"count":14,"anonymous":true}'   (signed "a friend")
  *   npx convex run seed:clear
  */
 export const photos = internalAction({
-  args: { count: v.number() },
-  handler: async (ctx, { count }) => {
+  args: { count: v.number(), anonymous: v.optional(v.boolean()) },
+  handler: async (ctx, { count, anonymous }) => {
     for (let i = 0; i < count; i++) {
       const key = `${Date.now()}-${i}`;
       const [full, thumb] = await Promise.all([
@@ -25,7 +26,7 @@ export const photos = internalAction({
       ]);
       await ctx.runMutation(internal.seed.insert, {
         clientId: `${PREFIX}${key}`,
-        handle: `guest_${String(i + 1).padStart(3, "0")}`,
+        handle: anonymous ? "" : `guest_${String(i + 1).padStart(3, "0")}`,
         storageId: await ctx.storage.store(full),
         thumbId: await ctx.storage.store(thumb),
       });
