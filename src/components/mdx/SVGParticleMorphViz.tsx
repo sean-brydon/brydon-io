@@ -12,10 +12,7 @@ const PRESETS: Record<string, string> = {
 };
 
 // ── Sample points from an SVG path ──
-function sampleSVGPath(
-  pathData: string,
-  count: number
-): [number, number][] {
+function sampleSVGPath(pathData: string, count: number): [number, number][] {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -42,7 +39,7 @@ function sampleSVGPath(
     const y = bbox.y + Math.random() * bbox.height;
     // Simple interior check: find nearest edge point and add with jitter
     const nearestEdge = path.getPointAtLength(
-      ((Math.random() * edgeCount) / edgeCount) * len
+      ((Math.random() * edgeCount) / edgeCount) * len,
     );
     const dx = x - nearestEdge.x;
     const dy = y - nearestEdge.y;
@@ -68,10 +65,7 @@ function sampleSVGPath(
   const cx = bbox.x + bbox.width / 2;
   const cy = bbox.y + bbox.height / 2;
   const scale = Math.max(bbox.width, bbox.height) / 2;
-  return pts.map(([x, y]) => [
-    (x - cx) / scale,
-    (y - cy) / scale,
-  ]);
+  return pts.map(([x, y]) => [(x - cx) / scale, (y - cy) / scale]);
 }
 
 // ── Sample from text (reuses the pattern from particles.tsx) ──
@@ -141,12 +135,9 @@ export default function SVGParticleMorphViz() {
     physicsRef.current = physics;
   }, [physics]);
 
-  const morphTo = useCallback(
-    (pts: [number, number][]) => {
-      morphTrigger.current = pts;
-    },
-    []
-  );
+  const morphTo = useCallback((pts: [number, number][]) => {
+    morphTrigger.current = pts;
+  }, []);
 
   const handlePreset = useCallback(
     (key: string) => {
@@ -154,7 +145,7 @@ export default function SVGParticleMorphViz() {
       const pts = sampleSVGPath(PRESETS[key], physics.particleCount);
       morphTo(pts);
     },
-    [morphTo, physics.particleCount]
+    [morphTo, physics.particleCount],
   );
 
   const handleCustomSvg = useCallback(() => {
@@ -262,8 +253,7 @@ export default function SVGParticleMorphViz() {
 
       ctx.clearRect(0, 0, w, h);
 
-      const isDark =
-        document.documentElement.classList.contains("dark");
+      const isDark = document.documentElement.classList.contains("dark");
       const scale = Math.min(w, h) * 0.32;
       const cx = w / 2;
       const cy = h / 2;
@@ -279,8 +269,7 @@ export default function SVGParticleMorphViz() {
         const mdy = screenY - mouse.y;
         const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
         if (mDist < p.repelRadius && mDist > 0.1) {
-          const force =
-            (1 - mDist / p.repelRadius) * p.repelForce;
+          const force = (1 - mDist / p.repelRadius) * p.repelForce;
           vx[i] += (mdx / mDist) * force;
           vy[i] += (mdy / mDist) * force;
         }
@@ -300,19 +289,14 @@ export default function SVGParticleMorphViz() {
 
         // Float
         const s = seed[i];
-        const floatX =
-          Math.sin(t * 0.3 + s) * p.floatAmount;
-        const floatY =
-          Math.cos(t * 0.25 + s * 1.3) * (p.floatAmount * 0.67);
+        const floatX = Math.sin(t * 0.3 + s) * p.floatAmount;
+        const floatY = Math.cos(t * 0.25 + s * 1.3) * (p.floatAmount * 0.67);
 
         const finalX = cx + (px[i] + floatX) * scale;
         const finalY = cy + (py[i] + floatY) * scale;
 
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const alpha = Math.max(
-          0.15,
-          Math.min(0.85, 1 - dist * 2)
-        );
+        const alpha = Math.max(0.15, Math.min(0.85, 1 - dist * 2));
 
         const sz = psize[i];
         if (isDark) {
@@ -389,22 +373,27 @@ function tick(mouse) {
     <div
       className="my-8 rounded-lg overflow-hidden"
       style={{
-        border: "1px solid var(--border)",
-        background: "var(--code-bg)",
+        border: "1px solid var(--blog-border)",
+        background: "var(--blog-code-bg)",
       }}
     >
       {/* Canvas */}
       <canvas
         ref={canvasRef}
-        style={{ width: "100%", height: 320, display: "block", cursor: "crosshair" }}
+        style={{
+          width: "100%",
+          height: 320,
+          display: "block",
+          cursor: "crosshair",
+        }}
       />
 
       {/* Controls */}
       <div
         className="px-4 py-3 space-y-3"
         style={{
-          borderTop: "1px solid var(--border)",
-          color: "var(--text-muted)",
+          borderTop: "1px solid var(--blog-border)",
+          color: "var(--blog-text-muted)",
         }}
       >
         {/* Shape presets */}
@@ -419,17 +408,12 @@ function tick(mouse) {
               className="px-2.5 py-1 rounded text-[11px] font-mono transition-colors"
               style={{
                 background:
-                  activePreset === key
-                    ? "var(--accent)"
-                    : "transparent",
-                color:
-                  activePreset === key
-                    ? "#fff"
-                    : "var(--text-muted)",
+                  activePreset === key ? "var(--blog-accent)" : "transparent",
+                color: activePreset === key ? "#fff" : "var(--blog-text-muted)",
                 border: `1px solid ${
                   activePreset === key
-                    ? "var(--accent)"
-                    : "var(--border)"
+                    ? "var(--blog-accent)"
+                    : "var(--blog-border)"
                 }`,
               }}
             >
@@ -441,17 +425,13 @@ function tick(mouse) {
             className="px-2.5 py-1 rounded text-[11px] font-mono transition-colors"
             style={{
               background:
-                activePreset === "text"
-                  ? "var(--accent)"
-                  : "transparent",
+                activePreset === "text" ? "var(--blog-accent)" : "transparent",
               color:
-                activePreset === "text"
-                  ? "#fff"
-                  : "var(--text-muted)",
+                activePreset === "text" ? "#fff" : "var(--blog-text-muted)",
               border: `1px solid ${
                 activePreset === "text"
-                  ? "var(--accent)"
-                  : "var(--border)"
+                  ? "var(--blog-accent)"
+                  : "var(--blog-border)"
               }`,
             }}
           >
@@ -468,16 +448,16 @@ function tick(mouse) {
             placeholder='paste svg path d="..." here'
             className="flex-1 px-2 py-1 rounded text-[11px] font-mono outline-none"
             style={{
-              background: "var(--bg)",
-              border: "1px solid var(--border)",
-              color: "var(--text)",
+              background: "var(--blog-bg)",
+              border: "1px solid var(--blog-border)",
+              color: "var(--blog-text)",
             }}
           />
           <button
             onClick={handleCustomSvg}
             className="px-3 py-1 rounded text-[11px] font-mono"
             style={{
-              background: "var(--accent)",
+              background: "var(--blog-accent)",
               color: "#fff",
               border: "none",
             }}
@@ -489,11 +469,41 @@ function tick(mouse) {
         {/* Physics sliders */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
           {[
-            { key: "spring" as const, label: "spring", min: 0.005, max: 0.12, step: 0.005 },
-            { key: "damping" as const, label: "damping", min: 0.7, max: 0.98, step: 0.01 },
-            { key: "repelRadius" as const, label: "repel ∅", min: 0, max: 80, step: 1 },
-            { key: "repelForce" as const, label: "repel force", min: 0, max: 0.3, step: 0.01 },
-            { key: "floatAmount" as const, label: "float", min: 0, max: 0.02, step: 0.001 },
+            {
+              key: "spring" as const,
+              label: "spring",
+              min: 0.005,
+              max: 0.12,
+              step: 0.005,
+            },
+            {
+              key: "damping" as const,
+              label: "damping",
+              min: 0.7,
+              max: 0.98,
+              step: 0.01,
+            },
+            {
+              key: "repelRadius" as const,
+              label: "repel ∅",
+              min: 0,
+              max: 80,
+              step: 1,
+            },
+            {
+              key: "repelForce" as const,
+              label: "repel force",
+              min: 0,
+              max: 0.3,
+              step: 0.01,
+            },
+            {
+              key: "floatAmount" as const,
+              label: "float",
+              min: 0,
+              max: 0.02,
+              step: 0.001,
+            },
           ].map(({ key, label, min, max, step }) => (
             <label key={key} className="flex flex-col gap-0.5">
               <span className="text-[10px] font-mono flex justify-between">
@@ -513,7 +523,7 @@ function tick(mouse) {
                   }))
                 }
                 className="w-full h-1 appearance-none rounded"
-                style={{ accentColor: "var(--accent)" }}
+                style={{ accentColor: "var(--blog-accent)" }}
               />
             </label>
           ))}
@@ -525,9 +535,9 @@ function tick(mouse) {
             onClick={() => setShowCode(!showCode)}
             className="px-2.5 py-1 rounded text-[10px] font-mono"
             style={{
-              border: "1px solid var(--border)",
-              background: showCode ? "var(--accent)" : "transparent",
-              color: showCode ? "#fff" : "var(--text-muted)",
+              border: "1px solid var(--blog-border)",
+              background: showCode ? "var(--blog-accent)" : "transparent",
+              color: showCode ? "#fff" : "var(--blog-text-muted)",
             }}
           >
             {showCode ? "hide code" : "export code"}
@@ -539,9 +549,9 @@ function tick(mouse) {
             }}
             className="px-2.5 py-1 rounded text-[10px] font-mono"
             style={{
-              border: "1px solid var(--border)",
+              border: "1px solid var(--blog-border)",
               background: "transparent",
-              color: "var(--text-muted)",
+              color: "var(--blog-text-muted)",
             }}
           >
             reset
@@ -553,9 +563,9 @@ function tick(mouse) {
           <pre
             className="text-[10px] leading-relaxed p-3 rounded overflow-x-auto font-mono"
             style={{
-              background: "var(--bg)",
-              border: "1px solid var(--border)",
-              color: "var(--text-muted)",
+              background: "var(--blog-bg)",
+              border: "1px solid var(--blog-border)",
+              color: "var(--blog-text-muted)",
             }}
           >
             {generatedCode}
@@ -566,11 +576,12 @@ function tick(mouse) {
       <div
         className="px-3 py-2 text-[10px]"
         style={{
-          borderTop: "1px solid var(--border)",
-          color: "var(--text-muted)",
+          borderTop: "1px solid var(--blog-border)",
+          color: "var(--blog-text-muted)",
         }}
       >
-        move your cursor over the particles — pick a shape or paste your own svg path
+        move your cursor over the particles — pick a shape or paste your own svg
+        path
       </div>
     </div>
   );

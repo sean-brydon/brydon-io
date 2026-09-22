@@ -32,11 +32,35 @@ export default function PermissionGraphViz() {
 
     // Permission graph data
     const nodes: Node[] = [
-      { id: "team.invite", x: 0.5, y: 0.12, label: "team.invite", active: false },
-      { id: "team.remove", x: 0.82, y: 0.12, label: "team.remove", active: false },
-      { id: "team.changeMemberRole", x: 0.18, y: 0.12, label: "team.changeRole", active: false },
+      {
+        id: "team.invite",
+        x: 0.5,
+        y: 0.12,
+        label: "team.invite",
+        active: false,
+      },
+      {
+        id: "team.remove",
+        x: 0.82,
+        y: 0.12,
+        label: "team.remove",
+        active: false,
+      },
+      {
+        id: "team.changeMemberRole",
+        x: 0.18,
+        y: 0.12,
+        label: "team.changeRole",
+        active: false,
+      },
       { id: "team.read", x: 0.28, y: 0.55, label: "team.read", active: false },
-      { id: "team.listMembers", x: 0.62, y: 0.55, label: "team.listMembers", active: false },
+      {
+        id: "team.listMembers",
+        x: 0.62,
+        y: 0.55,
+        label: "team.listMembers",
+        active: false,
+      },
       { id: "role.read", x: 0.5, y: 0.88, label: "role.read", active: false },
     ];
 
@@ -81,7 +105,10 @@ export default function PermissionGraphViz() {
         for (const edge of outEdges) {
           if (!visited.has(edge.to)) {
             visited.add(edge.to);
-            activationOrder.current.push({ id: edge.to, delay: (depth + 1) * 0.3 });
+            activationOrder.current.push({
+              id: edge.to,
+              delay: (depth + 1) * 0.3,
+            });
             queue.push({ id: edge.to, depth: depth + 1 });
           }
         }
@@ -90,15 +117,23 @@ export default function PermissionGraphViz() {
     };
 
     // Auto-cycle through clickable nodes
-    const clickableNodes = ["team.invite", "team.remove", "team.changeMemberRole"];
+    const clickableNodes = [
+      "team.invite",
+      "team.remove",
+      "team.changeMemberRole",
+    ];
     let autoCycleIndex = 0;
     let lastAutoTrigger = 0;
 
     const draw = () => {
       if (dead) return;
       const r = cvs.getBoundingClientRect();
-      const w = r.width, h = r.height;
-      if (w === 0) { raf = requestAnimationFrame(draw); return; }
+      const w = r.width,
+        h = r.height;
+      if (w === 0) {
+        raf = requestAnimationFrame(draw);
+        return;
+      }
 
       const now = performance.now() / 1000;
       animProgress.current += 0.016;
@@ -132,7 +167,8 @@ export default function PermissionGraphViz() {
         const from = getNodePos(fromNode, w, h);
         const to = getNodePos(toNode, w, h);
 
-        const isActive = currentlyActive.has(edge.from) && currentlyActive.has(edge.to);
+        const isActive =
+          currentlyActive.has(edge.from) && currentlyActive.has(edge.to);
 
         ctx.strokeStyle = isActive ? accentCol : dimCol;
         ctx.lineWidth = isActive ? 2 : 1;
@@ -150,9 +186,15 @@ export default function PermissionGraphViz() {
           const ay = to.y - Math.sin(angle) * arrowDist;
           ctx.fillStyle = accentCol;
           ctx.beginPath();
-          ctx.moveTo(ax + Math.cos(angle + 0.4) * 6, ay + Math.sin(angle + 0.4) * 6);
+          ctx.moveTo(
+            ax + Math.cos(angle + 0.4) * 6,
+            ay + Math.sin(angle + 0.4) * 6,
+          );
           ctx.lineTo(ax + Math.cos(angle) * 10, ay + Math.sin(angle) * 10);
-          ctx.lineTo(ax + Math.cos(angle - 0.4) * 6, ay + Math.sin(angle - 0.4) * 6);
+          ctx.lineTo(
+            ax + Math.cos(angle - 0.4) * 6,
+            ay + Math.sin(angle - 0.4) * 6,
+          );
           ctx.fill();
         }
 
@@ -170,7 +212,11 @@ export default function PermissionGraphViz() {
         // Node circle
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = isActive ? accentCol : isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)";
+        ctx.fillStyle = isActive
+          ? accentCol
+          : isDark
+            ? "rgba(255,255,255,0.03)"
+            : "rgba(0,0,0,0.03)";
         ctx.globalAlpha = isActive ? (isRoot ? 0.25 : 0.15) : 0.5;
         ctx.fill();
         ctx.strokeStyle = isActive ? accentCol : dimCol;
@@ -207,7 +253,10 @@ export default function PermissionGraphViz() {
 
     cvs.addEventListener("click", handleClick);
 
-    const loop = () => { draw(); raf = requestAnimationFrame(loop); };
+    const loop = () => {
+      draw();
+      raf = requestAnimationFrame(loop);
+    };
     raf = requestAnimationFrame(loop);
 
     // Initial trigger
@@ -223,9 +272,29 @@ export default function PermissionGraphViz() {
   }, []);
 
   return (
-    <div className="my-8 rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)", background: "var(--code-bg)" }}>
-      <canvas ref={ref} style={{ width: "100%", height: 260, display: "block", cursor: "pointer" }} />
-      <div className="px-3 py-2 text-[10px]" style={{ borderTop: "1px solid var(--border)", color: "var(--text-muted)" }}>
+    <div
+      className="my-8 rounded-lg overflow-hidden"
+      style={{
+        border: "1px solid var(--blog-border)",
+        background: "var(--blog-code-bg)",
+      }}
+    >
+      <canvas
+        ref={ref}
+        style={{
+          width: "100%",
+          height: 260,
+          display: "block",
+          cursor: "pointer",
+        }}
+      />
+      <div
+        className="px-3 py-2 text-[10px]"
+        style={{
+          borderTop: "1px solid var(--blog-border)",
+          color: "var(--blog-text-muted)",
+        }}
+      >
         click a top node to see its dependencies light up via BFS traversal
       </div>
     </div>

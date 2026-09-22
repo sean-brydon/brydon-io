@@ -50,7 +50,8 @@ export const PORTFOLIO_LINKS: Record<string, LinkDef> = {
   convex: {
     url: "https://convex.dev",
     title: "Convex",
-    description: "The reactive backend. Real-time database and server functions.",
+    description:
+      "The reactive backend. Real-time database and server functions.",
     favicon: "https://convex.dev/favicon.ico",
   },
   "cal.com": {
@@ -67,7 +68,11 @@ interface LinkPreviewProps {
   links?: Record<string, LinkDef>;
 }
 
-export function LinkPreview({ id, children, links = PORTFOLIO_LINKS }: LinkPreviewProps) {
+export function LinkPreview({
+  id,
+  children,
+  links = PORTFOLIO_LINKS,
+}: LinkPreviewProps) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState<"above" | "below">("above");
   const ref = useRef<HTMLSpanElement>(null);
@@ -88,7 +93,12 @@ export function LinkPreview({ id, children, links = PORTFOLIO_LINKS }: LinkPrevi
     timeoutRef.current = setTimeout(() => setShow(false), 200);
   }, []);
 
-  if (!link) return <span style={{ color: "var(--accent)", fontWeight: 600 }}>{children}</span>;
+  if (!link)
+    return (
+      <span style={{ color: "var(--blog-accent)", fontWeight: 600 }}>
+        {children}
+      </span>
+    );
 
   return (
     <span
@@ -104,8 +114,9 @@ export function LinkPreview({ id, children, links = PORTFOLIO_LINKS }: LinkPrevi
         rel="noopener noreferrer"
         className="no-underline font-semibold transition-colors"
         style={{
-          color: "var(--accent)",
-          borderBottom: "1px dashed color-mix(in srgb, var(--accent) 40%, transparent)",
+          color: "var(--blog-accent)",
+          borderBottom:
+            "1px dashed color-mix(in srgb, var(--blog-accent) 40%, transparent)",
           paddingBottom: 1,
         }}
       >
@@ -120,10 +131,12 @@ export function LinkPreview({ id, children, links = PORTFOLIO_LINKS }: LinkPrevi
           onMouseLeave={handleLeave}
           className="absolute left-1/2 -translate-x-1/2 overflow-hidden pointer-events-auto isolate"
           style={{
-            ...(pos === "above" ? { bottom: "calc(100% + 8px)" } : { top: "calc(100% + 8px)" }),
+            ...(pos === "above"
+              ? { bottom: "calc(100% + 8px)" }
+              : { top: "calc(100% + 8px)" }),
             width: 280,
-            background: "var(--bg)",
-            border: "1px solid var(--border)",
+            background: "var(--blog-bg)",
+            border: "1px solid var(--blog-border)",
             borderRadius: 10,
             zIndex: 9999,
             boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
@@ -133,12 +146,24 @@ export function LinkPreview({ id, children, links = PORTFOLIO_LINKS }: LinkPrevi
             <img
               src={link.image}
               alt=""
-              style={{ width: "100%", height: 120, objectFit: "cover", display: "block" }}
+              style={{
+                width: "100%",
+                height: 120,
+                objectFit: "cover",
+                display: "block",
+              }}
               onError={(e) => (e.currentTarget.style.display = "none")}
             />
           )}
           <span style={{ display: "block", padding: "10px 12px" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                marginBottom: 4,
+              }}
+            >
               {link.favicon && (
                 <img
                   src={link.favicon}
@@ -147,14 +172,23 @@ export function LinkPreview({ id, children, links = PORTFOLIO_LINKS }: LinkPrevi
                   onError={(e) => (e.currentTarget.style.display = "none")}
                 />
               )}
-              <span className="text-xs font-bold" style={{ color: "var(--text)" }}>
+              <span
+                className="text-xs font-bold"
+                style={{ color: "var(--blog-text)" }}
+              >
                 {link.title}
               </span>
             </span>
-            <span className="text-[11px] leading-relaxed block" style={{ color: "var(--text-muted)" }}>
+            <span
+              className="text-[11px] leading-relaxed block"
+              style={{ color: "var(--blog-text-muted)" }}
+            >
               {link.description}
             </span>
-            <span className="text-[10px] block mt-1.5" style={{ color: "var(--accent)", opacity: 0.6 }}>
+            <span
+              className="text-[10px] block mt-1.5"
+              style={{ color: "var(--blog-accent)", opacity: 0.6 }}
+            >
               {link.url.replace("https://", "")}
             </span>
           </span>

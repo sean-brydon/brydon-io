@@ -25,8 +25,16 @@ export default function DunningViz() {
     const tiers = [
       { label: "current", color: "#22c55e", blocks: [] as string[] },
       { label: "warning", color: "#f59e0b", blocks: ["emails sent"] },
-      { label: "soft block", color: "#f97316", blocks: ["+ invites blocked", "+ event types blocked"] },
-      { label: "hard block", color: "#ef4444", blocks: ["+ bookings blocked", "+ api blocked"] },
+      {
+        label: "soft block",
+        color: "#f97316",
+        blocks: ["+ invites blocked", "+ event types blocked"],
+      },
+      {
+        label: "hard block",
+        color: "#ef4444",
+        blocks: ["+ bookings blocked", "+ api blocked"],
+      },
       { label: "cancelled", color: "#991b1b", blocks: ["subscription ended"] },
     ];
 
@@ -35,8 +43,12 @@ export default function DunningViz() {
     const draw = () => {
       if (dead) return;
       const r = cvs.getBoundingClientRect();
-      const w = r.width, h = r.height;
-      if (w === 0) { raf = requestAnimationFrame(draw); return; }
+      const w = r.width,
+        h = r.height;
+      if (w === 0) {
+        raf = requestAnimationFrame(draw);
+        return;
+      }
       const t = (performance.now() - start) / 1000;
 
       ctx.clearRect(0, 0, w, h);
@@ -52,7 +64,8 @@ export default function DunningViz() {
       const advancePhase = Math.min(phase / 5, 1); // 0-5s: advance
       const resetPhase = phase > 6 ? Math.min((phase - 6) / 0.3, 1) : 0; // 6-6.3s: snap back
 
-      const activeTier = resetPhase > 0 ? 0 : Math.min(4, Math.floor(advancePhase * 5));
+      const activeTier =
+        resetPhase > 0 ? 0 : Math.min(4, Math.floor(advancePhase * 5));
 
       const tierW = (w - 40) / tiers.length;
       const tierH = 50;
@@ -63,7 +76,8 @@ export default function DunningViz() {
         const x1 = 20 + i * tierW + tierW - 4;
         const x2 = 20 + (i + 1) * tierW + 4;
         const y = baseY + tierH / 2;
-        ctx.strokeStyle = i < activeTier ? tiers[Math.min(i + 1, 4)].color : dimCol;
+        ctx.strokeStyle =
+          i < activeTier ? tiers[Math.min(i + 1, 4)].color : dimCol;
         ctx.lineWidth = i < activeTier ? 2 : 1;
         ctx.beginPath();
         ctx.moveTo(x1, y);
@@ -150,13 +164,32 @@ export default function DunningViz() {
     };
     raf = requestAnimationFrame(draw);
 
-    return () => { dead = true; cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+    return () => {
+      dead = true;
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
   }, []);
 
   return (
-    <div className="my-8 rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)", background: "var(--code-bg)" }}>
-      <canvas ref={ref} style={{ width: "100%", height: 200, display: "block" }} />
-      <div className="px-3 py-2 text-[10px]" style={{ borderTop: "1px solid var(--border)", color: "var(--text-muted)" }}>
+    <div
+      className="my-8 rounded-lg overflow-hidden"
+      style={{
+        border: "1px solid var(--blog-border)",
+        background: "var(--blog-code-bg)",
+      }}
+    >
+      <canvas
+        ref={ref}
+        style={{ width: "100%", height: 200, display: "block" }}
+      />
+      <div
+        className="px-3 py-2 text-[10px]"
+        style={{
+          borderTop: "1px solid var(--blog-border)",
+          color: "var(--blog-text-muted)",
+        }}
+      >
         tiers advance over 21 days — payment at any point resets to current
       </div>
     </div>

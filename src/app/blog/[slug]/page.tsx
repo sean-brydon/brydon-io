@@ -33,7 +33,7 @@ export default async function BlogPostPage({ params }: Props) {
         <Link
           href="/blog"
           className="text-xs no-underline transition-colors"
-          style={{ color: "var(--text-muted)" }}
+          style={{ color: "var(--blog-text-muted)" }}
         >
           ← back to blog
         </Link>
@@ -41,10 +41,16 @@ export default async function BlogPostPage({ params }: Props) {
 
       <article>
         <header className="mb-10">
-          <h1 className="text-2xl font-bold mb-2" style={{ color: "var(--text)" }}>
+          <h1
+            className="text-2xl font-bold mb-2"
+            style={{ color: "var(--blog-text)" }}
+          >
             {post.title}
           </h1>
-          <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
+          <div
+            className="flex items-center gap-3 text-xs"
+            style={{ color: "var(--blog-text-muted)", opacity: 0.5 }}
+          >
             <time dateTime={post.date}>
               {new Date(post.date).toLocaleDateString("en-US", {
                 year: "numeric",
