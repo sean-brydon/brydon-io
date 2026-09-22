@@ -114,13 +114,18 @@ export const save = mutation({
     thumbId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, { clientId, sessionId, handle, storageId, thumbId }) => {
-    const validPhoto = await isImage(ctx, storageId, MAX_BYTES);
-    const validThumb =
-      !thumbId || (await isImage(ctx, thumbId, MAX_THUMB_BYTES));
-    if (!validPhoto || !validThumb) {
+    // Rejections return null instead of throwing: a thrown error rolls back
+    // the mutation, which would undo these deletes and orphan the files.
+    if (!(await isImage(ctx, storageId, MAX_BYTES))) {
       await ctx.storage.delete(storageId);
       if (thumbId) await ctx.storage.delete(thumbId);
-      throw new Error("Invalid photo");
+      return null;
+    }
+    // A bad thumbnail isn't worth losing the photo over: fall back to the full print.
+    let thumb = thumbId;
+    if (thumbId && !(await isImage(ctx, thumbId, MAX_THUMB_BYTES))) {
+      await ctx.storage.delete(thumbId);
+      thumb = undefined;
     }
 
     const existing = await ctx.db
@@ -134,7 +139,7 @@ export const save = mutation({
       clientId: clientId.slice(0, 64),
       name: HANDLE.test(clean) ? clean : "",
       storageId,
-      thumbId,
+      thumbId: thumb,
       status: "pending",
       sessionId: sessionId.slice(0, 64),
     });
@@ -179,5 +184,25 @@ export const backfillStatus = internalMutation({
       patched++;
     }
     return patched;
+  },
+});
+
+/** Uploaded files older than a day that no photo references (abandoned uploads). */
+export const cleanupOrphans = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const referenced = new Set<string>();
+    for (const photo of await ctx.db.query("photos").collect()) {
+      referenced.add(photo.storageId);
+      if (photo.thumbId) referenced.add(photo.thumbId);
+    }
+    const cutoff = Date.now() - DAY;
+    let deleted = 0;
+    for (const file of await ctx.db.system.query("_storage").collect()) {
+      if (file._creationTime > cutoff || referenced.has(file._id)) continue;
+      await ctx.storage.delete(file._id);
+      deleted++;
+    }
+    return deleted;
   },
 });

@@ -41,16 +41,20 @@ export function squareJpeg(
   );
 }
 
-/** A small WebP of a print for the table and shoebox (~15 KB instead of ~80 KB). */
+/** A small thumbnail of a print for the table and shoebox (~10 KB instead of ~80 KB). */
 export async function thumbnail(blob: Blob, size = 320) {
   const bitmap = await createImageBitmap(blob);
   try {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
     canvas.getContext("2d")!.drawImage(bitmap, 0, 0, size, size);
-    return await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/webp", 0.8),
-    );
+    const encode = (type: string, quality: number) =>
+      new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, type, quality),
+      );
+    const webp = await encode("image/webp", 0.8);
+    // Safari can't encode WebP and silently hands back a ~200 KB PNG instead.
+    return webp?.type === "image/webp" ? webp : encode("image/jpeg", 0.8);
   } finally {
     bitmap.close();
   }

@@ -116,9 +116,12 @@ export const review = internalAction({
     const verdict = String(data.choices?.[0]?.message?.content ?? "")
       .trim()
       .toUpperCase();
+    const approved = verdict.startsWith("SAFE");
+    if (!approved)
+      console.log(`moderation rejected ${photoId}: ${JSON.stringify(verdict)}`);
     await ctx.runMutation(internal.moderation.decide, {
       photoId,
-      approved: verdict.startsWith("SAFE"),
+      approved,
     });
   },
 });
