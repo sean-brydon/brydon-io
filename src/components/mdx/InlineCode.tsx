@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface InlineCodeProps {
   children?: React.ReactNode;
@@ -10,9 +10,9 @@ export default function InlineCode({ children, ...props }: InlineCodeProps) {
     <code
       className="text-xs px-1.5 py-0.5 rounded font-mono"
       style={{
-        background: "var(--code-bg)",
-        color: "var(--accent)",
-        border: "1px solid var(--border)",
+        background: "var(--blog-code-bg)",
+        color: "var(--blog-accent)",
+        border: "1px solid var(--blog-border)",
       }}
       {...props}
     >

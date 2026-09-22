@@ -1,51 +1,34 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Lexend } from "next/font/google";
+import { Caveat, Geist_Mono, Inter } from "next/font/google";
+import { ToastProvider } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 import "./globals.css";
-import { ThemeProvider } from "./components/theme-provider";
-import { Nav } from "@/components/nav";
-import { Footer } from "@/components/footer";
-import { A11yWidget } from "@/components/a11y-widget";
 
-const font = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-});
-
-const dyslexicFont = Lexend({
-  subsets: ["latin"],
-  variable: "--font-dyslexic",
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const interHeading = Inter({ subsets: ["latin"], variable: "--font-heading" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
+const caveat = Caveat({ subsets: ["latin"], variable: "--font-hand" });
 
 export const metadata: Metadata = {
-  title: {
-    default: "sean brydon",
-    template: "%s — sean brydon",
-  },
-  description: "developer from newcastle, england. building cal.com.",
-  metadataBase: new URL("https://brydon.io"),
+  title: "Sean Brydon",
+  description:
+    "Sean Brydon. Take an instant photo, sign it with your X handle, and toss it on the table.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${font.variable} ${dyslexicFont.variable} font-mono antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange={false}
-        >
-          <div className="min-h-screen flex flex-col">
-            <Nav />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-          <A11yWidget />
-        </ThemeProvider>
+    <html
+      lang="en"
+      className={cn(
+        "h-full antialiased",
+        inter.variable,
+        interHeading.variable,
+        geistMono.variable,
+        caveat.variable,
+      )}
+    >
+      <body className="min-h-full font-sans">
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

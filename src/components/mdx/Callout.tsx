@@ -8,14 +8,19 @@ interface CalloutProps {
   title?: string;
 }
 
-const config: Record<string, { border: string; label: string; icon: string }> = {
-  note:    { border: "var(--accent)",  label: "note",    icon: "→" },
-  info:    { border: "var(--accent)",  label: "info",    icon: "i" },
-  warning: { border: "#f59e0b",        label: "warning", icon: "!" },
-  error:   { border: "#ef4444",        label: "error",   icon: "×" },
-};
+const config: Record<string, { border: string; label: string; icon: string }> =
+  {
+    note: { border: "var(--blog-accent)", label: "note", icon: "→" },
+    info: { border: "var(--blog-accent)", label: "info", icon: "i" },
+    warning: { border: "#f59e0b", label: "warning", icon: "!" },
+    error: { border: "#ef4444", label: "error", icon: "×" },
+  };
 
-export default function Callout({ type = "note", children, title }: CalloutProps) {
+export default function Callout({
+  type = "note",
+  children,
+  title,
+}: CalloutProps) {
   const c = config[type] || config.note;
 
   return (
@@ -23,7 +28,7 @@ export default function Callout({ type = "note", children, title }: CalloutProps
       className="my-6 py-3 pl-4 pr-4"
       style={{
         borderLeft: `2px solid ${c.border}`,
-        background: "var(--card-bg)",
+        background: "var(--blog-card-bg)",
       }}
     >
       <div className="flex items-center gap-2 mb-1.5">
@@ -40,7 +45,10 @@ export default function Callout({ type = "note", children, title }: CalloutProps
           {title || c.label}
         </span>
       </div>
-      <div className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+      <div
+        className="text-xs leading-relaxed"
+        style={{ color: "var(--blog-text-muted)" }}
+      >
         {children}
       </div>
     </div>

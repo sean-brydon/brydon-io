@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
 
 interface CodeBlockProps {
   children: React.ReactNode;
@@ -9,11 +8,14 @@ interface CodeBlockProps {
   title?: string;
 }
 
-export default function CodeBlock({ children, className, title }: CodeBlockProps) {
+export default function CodeBlock({
+  children,
+  className,
+  title,
+}: CodeBlockProps) {
   const language = className?.replace("language-", "") || "";
   const code = typeof children === "string" ? children : extractText(children);
   const [highlighted, setHighlighted] = useState<string | null>(null);
-  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     if (!code || !language) return;
@@ -24,7 +26,7 @@ export default function CodeBlock({ children, className, title }: CodeBlockProps
         const { codeToHtml } = await import("shiki");
         const html = await codeToHtml(code.trim(), {
           lang: language,
-          theme: resolvedTheme === "dark" ? "github-dark-default" : "github-light-default",
+          theme: "github-light-default",
         });
         if (!cancelled) setHighlighted(html);
       } catch {
@@ -32,18 +34,23 @@ export default function CodeBlock({ children, className, title }: CodeBlockProps
       }
     })();
 
-    return () => { cancelled = true; };
-  }, [code, language, resolvedTheme]);
+    return () => {
+      cancelled = true;
+    };
+  }, [code, language]);
 
   return (
-    <div className="my-6 rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+    <div
+      className="my-6 rounded-lg overflow-hidden"
+      style={{ border: "1px solid var(--blog-border)" }}
+    >
       {(title || language) && (
         <div
           className="px-3 py-1.5 text-[10px] font-mono flex items-center justify-between"
           style={{
-            background: "var(--code-bg)",
-            color: "var(--text-muted)",
-            borderBottom: "1px solid var(--border)",
+            background: "var(--blog-code-bg)",
+            color: "var(--blog-text-muted)",
+            borderBottom: "1px solid var(--blog-border)",
           }}
         >
           <span>{title || language}</span>
@@ -53,13 +60,16 @@ export default function CodeBlock({ children, className, title }: CodeBlockProps
       {highlighted ? (
         <div
           className="shiki-wrapper text-xs leading-relaxed overflow-x-auto [&_pre]:!bg-transparent [&_pre]:!m-0 [&_pre]:!p-4 [&_code]:!text-xs [&_code]:!font-mono"
-          style={{ background: "var(--code-bg)" }}
+          style={{ background: "var(--blog-code-bg)" }}
           dangerouslySetInnerHTML={{ __html: highlighted }}
         />
       ) : (
         <pre
           className="p-4 overflow-x-auto text-xs leading-relaxed m-0"
-          style={{ background: "var(--code-bg)", color: "var(--text)" }}
+          style={{
+            background: "var(--blog-code-bg)",
+            color: "var(--blog-text)",
+          }}
         >
           <code className="font-mono">{children}</code>
         </pre>
@@ -80,7 +90,7 @@ function CopyButton({ text }: { text: string }) {
       }}
       className="text-[10px] px-1.5 py-0.5 rounded transition-colors"
       style={{
-        color: copied ? "var(--accent)" : "var(--text-muted)",
+        color: copied ? "var(--blog-accent)" : "var(--blog-text-muted)",
         background: "transparent",
         border: "none",
         cursor: "pointer",
@@ -97,7 +107,10 @@ function extractText(node: React.ReactNode): string {
   if (!node) return "";
   if (Array.isArray(node)) return node.map(extractText).join("");
   if (typeof node === "object" && "props" in node) {
-    return extractText((node as React.ReactElement).props.children);
+    return extractText(
+      (node as React.ReactElement<{ children?: React.ReactNode }>).props
+        .children,
+    );
   }
   return "";
 }

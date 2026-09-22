@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import matter from 'gray-matter';
+import fs from "fs";
+import path from "path";
+import matter from "gray-matter";
 
 export interface BlogPost {
   slug: string;
@@ -8,7 +8,7 @@ export interface BlogPost {
   date: string;
   description: string;
   content: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface BlogPostMeta {
@@ -16,27 +16,27 @@ export interface BlogPostMeta {
   title: string;
   date: string;
   description: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-const contentDirectory = path.join(process.cwd(), 'content/blog');
+const contentDirectory = path.join(process.cwd(), "content/blog");
 
 export function getAllBlogPosts(): BlogPostMeta[] {
   try {
     const fileNames = fs.readdirSync(contentDirectory);
     const allPostsData = fileNames
-      .filter((fileName) => fileName.endsWith('.mdx'))
+      .filter((fileName) => fileName.endsWith(".mdx"))
       .map((fileName) => {
-        const slug = fileName.replace(/\.mdx$/, '');
+        const slug = fileName.replace(/\.mdx$/, "");
         const fullPath = path.join(contentDirectory, fileName);
-        const fileContents = fs.readFileSync(fullPath, 'utf8');
+        const fileContents = fs.readFileSync(fullPath, "utf8");
         const { data } = matter(fileContents);
 
         return {
           slug,
-          title: data.title || '',
-          date: data.date || '',
-          description: data.description || '',
+          title: data.title || "",
+          date: data.date || "",
+          description: data.description || "",
           ...data,
         };
       });
@@ -46,7 +46,7 @@ export function getAllBlogPosts(): BlogPostMeta[] {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
   } catch (error) {
-    console.warn('Error reading blog posts:', error);
+    console.warn("Error reading blog posts:", error);
     return [];
   }
 }
@@ -54,14 +54,14 @@ export function getAllBlogPosts(): BlogPostMeta[] {
 export function getBlogPost(slug: string): BlogPost | null {
   try {
     const fullPath = path.join(contentDirectory, `${slug}.mdx`);
-    const fileContents = fs.readFileSync(fullPath, 'utf8');
+    const fileContents = fs.readFileSync(fullPath, "utf8");
     const { data, content } = matter(fileContents);
 
     return {
       slug,
-      title: data.title || '',
-      date: data.date || '',
-      description: data.description || '',
+      title: data.title || "",
+      date: data.date || "",
+      description: data.description || "",
       content,
       ...data,
     };
@@ -75,10 +75,10 @@ export function getAllBlogSlugs(): string[] {
   try {
     const fileNames = fs.readdirSync(contentDirectory);
     return fileNames
-      .filter((fileName) => fileName.endsWith('.mdx'))
-      .map((fileName) => fileName.replace(/\.mdx$/, ''));
+      .filter((fileName) => fileName.endsWith(".mdx"))
+      .map((fileName) => fileName.replace(/\.mdx$/, ""));
   } catch (error) {
-    console.warn('Error reading blog slugs:', error);
+    console.warn("Error reading blog slugs:", error);
     return [];
   }
 }

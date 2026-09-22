@@ -23,15 +23,22 @@ export default function HWMViz() {
     window.addEventListener("resize", resize);
 
     // Seat changes over a "month" (30 data points)
-    const seatEvents = [5,5,6,7,7,8,8,9,10,10,10,12,12,11,9,9,10,10,8,8,7,7,8,9,9,10,10,9,8,7];
+    const seatEvents = [
+      5, 5, 6, 7, 7, 8, 8, 9, 10, 10, 10, 12, 12, 11, 9, 9, 10, 10, 8, 8, 7, 7,
+      8, 9, 9, 10, 10, 9, 8, 7,
+    ];
     const maxSeats = 14;
     const start = performance.now();
 
     const draw = () => {
       if (dead) return;
       const r = cvs.getBoundingClientRect();
-      const w = r.width, h = r.height;
-      if (w === 0) { raf = requestAnimationFrame(draw); return; }
+      const w = r.width,
+        h = r.height;
+      if (w === 0) {
+        raf = requestAnimationFrame(draw);
+        return;
+      }
       const t = (performance.now() - start) / 1000;
 
       ctx.clearRect(0, 0, w, h);
@@ -52,7 +59,10 @@ export default function HWMViz() {
       ctx.lineWidth = 1;
       for (let i = 0; i <= 4; i++) {
         const y = pad.top + (gh / 4) * i;
-        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(w - pad.right, y);
+        ctx.stroke();
       }
 
       // Animated progress
@@ -70,7 +80,8 @@ export default function HWMViz() {
       for (let i = 0; i <= visibleCount && i < seatEvents.length; i++) {
         const x = pad.left + i * stepW;
         const y = pad.top + gh - (seatEvents[i] / maxSeats) * gh;
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
         if (seatEvents[i] > hwm) hwm = seatEvents[i];
       }
       ctx.stroke();
@@ -90,7 +101,11 @@ export default function HWMViz() {
       ctx.fillStyle = hwmCol;
       ctx.font = "600 10px monospace";
       ctx.textAlign = "left";
-      ctx.fillText(`hwm: ${hwm}`, pad.left + visibleCount * stepW + 6, hwmY + 3);
+      ctx.fillText(
+        `hwm: ${hwm}`,
+        pad.left + visibleCount * stepW + 6,
+        hwmY + 3,
+      );
 
       // Current seat dot
       if (visibleCount < seatEvents.length) {
@@ -119,13 +134,32 @@ export default function HWMViz() {
     };
     raf = requestAnimationFrame(draw);
 
-    return () => { dead = true; cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+    return () => {
+      dead = true;
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
   }, []);
 
   return (
-    <div className="my-8 rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)", background: "var(--code-bg)" }}>
-      <canvas ref={ref} style={{ width: "100%", height: 220, display: "block" }} />
-      <div className="px-3 py-2 text-[10px]" style={{ borderTop: "1px solid var(--border)", color: "var(--text-muted)" }}>
+    <div
+      className="my-8 rounded-lg overflow-hidden"
+      style={{
+        border: "1px solid var(--blog-border)",
+        background: "var(--blog-code-bg)",
+      }}
+    >
+      <canvas
+        ref={ref}
+        style={{ width: "100%", height: 220, display: "block" }}
+      />
+      <div
+        className="px-3 py-2 text-[10px]"
+        style={{
+          borderTop: "1px solid var(--blog-border)",
+          color: "var(--blog-text-muted)",
+        }}
+      >
         seats fluctuate but you pay for the peak — the high water mark
       </div>
     </div>

@@ -10,7 +10,10 @@ function StepCanvas({
 }: {
   height?: number;
   label?: string;
-  init: (ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => (() => void) | void;
+  init: (
+    ctx: CanvasRenderingContext2D,
+    cvs: HTMLCanvasElement,
+  ) => (() => void) | void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -51,7 +54,10 @@ function StepCanvas({
   return (
     <div
       className="my-6 rounded-lg overflow-hidden"
-      style={{ border: "1px solid var(--border)", background: "var(--code-bg)" }}
+      style={{
+        border: "1px solid var(--blog-border)",
+        background: "var(--blog-code-bg)",
+      }}
     >
       <canvas
         ref={canvasRef}
@@ -60,7 +66,11 @@ function StepCanvas({
       {label && (
         <div
           className="px-3 py-2 text-[10px] font-mono"
-          style={{ borderTop: "1px solid var(--border)", color: "var(--text-muted)", opacity: 0.6 }}
+          style={{
+            borderTop: "1px solid var(--blog-border)",
+            color: "var(--blog-text-muted)",
+            opacity: 0.6,
+          }}
         >
           {label}
         </div>
@@ -71,95 +81,121 @@ function StepCanvas({
 
 // ── Step 1: Static grid of particles ──
 export function Step1Grid() {
-  const init = useCallback((ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => {
-    const draw = () => {
-      const rect = cvs.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-      if (w === 0) return;
+  const init = useCallback(
+    (ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => {
+      const draw = () => {
+        const rect = cvs.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        if (w === 0) return;
 
-      ctx.clearRect(0, 0, w, h);
-      const isDark = document.documentElement.classList.contains("dark");
-      const color = isDark ? "rgba(99, 102, 241, 0.7)" : "rgba(79, 70, 229, 0.6)";
+        ctx.clearRect(0, 0, w, h);
+        const isDark = document.documentElement.classList.contains("dark");
+        const color = isDark
+          ? "rgba(99, 102, 241, 0.7)"
+          : "rgba(79, 70, 229, 0.6)";
 
-      const cols = 10;
-      const rows = 10;
-      const spacingX = w / (cols + 1);
-      const spacingY = h / (rows + 1);
+        const cols = 10;
+        const rows = 10;
+        const spacingX = w / (cols + 1);
+        const spacingY = h / (rows + 1);
 
-      ctx.fillStyle = color;
-      for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-          const x = spacingX * (col + 1);
-          const y = spacingY * (row + 1);
-          ctx.beginPath();
-          ctx.arc(x, y, 2, 0, Math.PI * 2);
-          ctx.fill();
+        ctx.fillStyle = color;
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const x = spacingX * (col + 1);
+            const y = spacingY * (row + 1);
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
-      }
-    };
-    draw();
-    // Redraw on resize
-    const obs = new ResizeObserver(draw);
-    obs.observe(cvs);
-    return () => obs.disconnect();
-  }, []);
+      };
+      draw();
+      // Redraw on resize
+      const obs = new ResizeObserver(draw);
+      obs.observe(cvs);
+      return () => obs.disconnect();
+    },
+    [],
+  );
 
-  return <StepCanvas height={240} init={init} label="100 particles in a 10×10 grid — nothing fancy yet" />;
+  return (
+    <StepCanvas
+      height={240}
+      init={init}
+      label="100 particles in a 10×10 grid — nothing fancy yet"
+    />
+  );
 }
 
 // ── Step 2: Random positions + animation loop ──
 export function Step2Random() {
-  const init = useCallback((ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => {
-    const COUNT = 200;
-    const px = new Float32Array(COUNT);
-    const py = new Float32Array(COUNT);
-    const seed = new Float32Array(COUNT);
-
-    for (let i = 0; i < COUNT; i++) {
-      px[i] = Math.random();
-      py[i] = Math.random();
-      seed[i] = Math.random() * Math.PI * 2;
-    }
-
-    let raf = 0;
-    let dead = false;
-    const startTime = performance.now();
-
-    const draw = () => {
-      if (dead) return;
-      const rect = cvs.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-      if (w === 0) { raf = requestAnimationFrame(draw); return; }
-
-      const t = (performance.now() - startTime) / 1000;
-      ctx.clearRect(0, 0, w, h);
-
-      const isDark = document.documentElement.classList.contains("dark");
+  const init = useCallback(
+    (ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => {
+      const COUNT = 200;
+      const px = new Float32Array(COUNT);
+      const py = new Float32Array(COUNT);
+      const seed = new Float32Array(COUNT);
 
       for (let i = 0; i < COUNT; i++) {
-        const floatX = Math.sin(t * 0.4 + seed[i]) * 8;
-        const floatY = Math.cos(t * 0.3 + seed[i] * 1.3) * 6;
-        const x = px[i] * w + floatX;
-        const y = py[i] * h + floatY;
-        const alpha = 0.3 + Math.sin(t * 0.5 + seed[i]) * 0.2;
-
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = isDark ? "rgb(99, 102, 241)" : "rgb(79, 70, 229)";
-        ctx.beginPath();
-        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-        ctx.fill();
+        px[i] = Math.random();
+        py[i] = Math.random();
+        seed[i] = Math.random() * Math.PI * 2;
       }
-      ctx.globalAlpha = 1;
+
+      let raf = 0;
+      let dead = false;
+      const startTime = performance.now();
+
+      const draw = () => {
+        if (dead) return;
+        const rect = cvs.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        if (w === 0) {
+          raf = requestAnimationFrame(draw);
+          return;
+        }
+
+        const t = (performance.now() - startTime) / 1000;
+        ctx.clearRect(0, 0, w, h);
+
+        const isDark = document.documentElement.classList.contains("dark");
+
+        for (let i = 0; i < COUNT; i++) {
+          const floatX = Math.sin(t * 0.4 + seed[i]) * 8;
+          const floatY = Math.cos(t * 0.3 + seed[i] * 1.3) * 6;
+          const x = px[i] * w + floatX;
+          const y = py[i] * h + floatY;
+          const alpha = 0.3 + Math.sin(t * 0.5 + seed[i]) * 0.2;
+
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = isDark ? "rgb(99, 102, 241)" : "rgb(79, 70, 229)";
+          ctx.beginPath();
+          ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        raf = requestAnimationFrame(draw);
+      };
+
       raf = requestAnimationFrame(draw);
-    };
+      return () => {
+        dead = true;
+        cancelAnimationFrame(raf);
+      };
+    },
+    [],
+  );
 
-    raf = requestAnimationFrame(draw);
-    return () => { dead = true; cancelAnimationFrame(raf); };
-  }, []);
-
-  return <StepCanvas height={240} init={init} label="200 random particles with gentle floating — each has its own phase" />;
+  return (
+    <StepCanvas
+      height={240}
+      init={init}
+      label="200 random particles with gentle floating — each has its own phase"
+    />
+  );
 }
 
 // ── Damping Graph: interactive spring response curve ──
@@ -234,11 +270,17 @@ export function DampingGraph() {
     const FRAMES = 120;
     for (let i = 0; i <= 5; i++) {
       const x = pad.left + (plotW / 5) * i;
-      ctx.fillText(String(Math.round((FRAMES / 5) * i)), x, pad.top + plotH + 14);
+      ctx.fillText(
+        String(Math.round((FRAMES / 5) * i)),
+        x,
+        pad.top + plotH + 14,
+      );
     }
 
     // ── Target line (y=1) ──
-    ctx.strokeStyle = isDark ? "rgba(99, 102, 241, 0.25)" : "rgba(79, 70, 229, 0.2)";
+    ctx.strokeStyle = isDark
+      ? "rgba(99, 102, 241, 0.25)"
+      : "rgba(79, 70, 229, 0.2)";
     ctx.setLineDash([4, 4]);
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -248,20 +290,40 @@ export function DampingGraph() {
     ctx.stroke();
     ctx.setLineDash([]);
     // Label
-    ctx.fillStyle = isDark ? "rgba(99, 102, 241, 0.4)" : "rgba(79, 70, 229, 0.35)";
+    ctx.fillStyle = isDark
+      ? "rgba(99, 102, 241, 0.4)"
+      : "rgba(79, 70, 229, 0.35)";
     ctx.font = "9px monospace";
     ctx.textAlign = "left";
     ctx.fillText("target", pad.left + plotW - 32, targetY - 5);
 
     // ── Simulate and draw comparison curves ──
     const configs = [
-      { d: 0.80, s: spring, color: isDark ? "rgba(251, 191, 36, 0.6)" : "rgba(217, 119, 6, 0.5)", label: "0.80 (stiff)" },
-      { d: damping, s: spring, color: isDark ? "rgba(99, 102, 241, 1)" : "rgba(79, 70, 229, 1)", label: `${damping.toFixed(2)} (current)`, active: true },
-      { d: 0.95, s: spring, color: isDark ? "rgba(52, 211, 153, 0.6)" : "rgba(16, 185, 129, 0.5)", label: "0.95 (bouncy)" },
+      {
+        d: 0.8,
+        s: spring,
+        color: isDark ? "rgba(251, 191, 36, 0.6)" : "rgba(217, 119, 6, 0.5)",
+        label: "0.80 (stiff)",
+      },
+      {
+        d: damping,
+        s: spring,
+        color: isDark ? "rgba(99, 102, 241, 1)" : "rgba(79, 70, 229, 1)",
+        label: `${damping.toFixed(2)} (current)`,
+        active: true,
+      },
+      {
+        d: 0.95,
+        s: spring,
+        color: isDark ? "rgba(52, 211, 153, 0.6)" : "rgba(16, 185, 129, 0.5)",
+        label: "0.95 (bouncy)",
+      },
     ];
 
     // Don't draw 0.80 or 0.95 if current matches
-    const filtered = configs.filter(c => c.active || Math.abs(c.d - damping) > 0.005);
+    const filtered = configs.filter(
+      (c) => c.active || Math.abs(c.d - damping) > 0.005,
+    );
 
     for (const config of filtered) {
       let pos = 0;
@@ -280,8 +342,11 @@ export function DampingGraph() {
         pos += vel;
 
         const x = pad.left + (frame / FRAMES) * plotW;
-        const y = pad.top + plotH - (pos * plotH);
-        const clampedY = Math.max(pad.top - 4, Math.min(pad.top + plotH + 4, y));
+        const y = pad.top + plotH - pos * plotH;
+        const clampedY = Math.max(
+          pad.top - 4,
+          Math.min(pad.top + plotH + 4, y),
+        );
 
         if (frame === 0) ctx.moveTo(x, clampedY);
         else ctx.lineTo(x, clampedY);
@@ -322,7 +387,6 @@ export function DampingGraph() {
     ctx.textAlign = "center";
     ctx.fillText("position", 0, 0);
     ctx.restore();
-
   }, [damping, spring]);
 
   // Handle resize
@@ -331,7 +395,7 @@ export function DampingGraph() {
     if (!cvs) return;
     const obs = new ResizeObserver(() => {
       // Trigger re-render by touching state
-      setDamping(d => d);
+      setDamping((d) => d);
     });
     obs.observe(cvs);
     return () => obs.disconnect();
@@ -340,7 +404,10 @@ export function DampingGraph() {
   return (
     <div
       className="my-6 rounded-lg overflow-hidden"
-      style={{ border: "1px solid var(--border)", background: "var(--code-bg)" }}
+      style={{
+        border: "1px solid var(--blog-border)",
+        background: "var(--blog-code-bg)",
+      }}
     >
       <canvas
         ref={canvasRef}
@@ -348,10 +415,13 @@ export function DampingGraph() {
       />
       <div
         className="px-4 py-3 space-y-2"
-        style={{ borderTop: "1px solid var(--border)" }}
+        style={{ borderTop: "1px solid var(--blog-border)" }}
       >
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-mono flex justify-between" style={{ color: "var(--text-muted)" }}>
+          <span
+            className="text-[10px] font-mono flex justify-between"
+            style={{ color: "var(--blog-text-muted)" }}
+          >
             <span>damping</span>
             <span style={{ opacity: 0.5 }}>{damping.toFixed(2)}</span>
           </span>
@@ -363,11 +433,14 @@ export function DampingGraph() {
             value={damping}
             onChange={(e) => setDamping(parseFloat(e.target.value))}
             className="w-full h-1 appearance-none rounded"
-            style={{ accentColor: "var(--accent)" }}
+            style={{ accentColor: "var(--blog-accent)" }}
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-mono flex justify-between" style={{ color: "var(--text-muted)" }}>
+          <span
+            className="text-[10px] font-mono flex justify-between"
+            style={{ color: "var(--blog-text-muted)" }}
+          >
             <span>spring force</span>
             <span style={{ opacity: 0.5 }}>{spring.toFixed(3)}</span>
           </span>
@@ -379,15 +452,20 @@ export function DampingGraph() {
             value={spring}
             onChange={(e) => setSpring(parseFloat(e.target.value))}
             className="w-full h-1 appearance-none rounded"
-            style={{ accentColor: "var(--accent)" }}
+            style={{ accentColor: "var(--blog-accent)" }}
           />
         </label>
       </div>
       <div
         className="px-3 py-2 text-[10px] font-mono"
-        style={{ borderTop: "1px solid var(--border)", color: "var(--text-muted)", opacity: 0.6 }}
+        style={{
+          borderTop: "1px solid var(--blog-border)",
+          color: "var(--blog-text-muted)",
+          opacity: 0.6,
+        }}
       >
-        drag the sliders — watch how damping controls overshoot and settling time
+        drag the sliders — watch how damping controls overshoot and settling
+        time
       </div>
     </div>
   );
@@ -395,314 +473,383 @@ export function DampingGraph() {
 
 // ── Step 3: Spring physics — particles chase random targets ──
 export function Step3Spring() {
-  const init = useCallback((ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => {
-    const COUNT = 200;
-    const px = new Float32Array(COUNT);
-    const py = new Float32Array(COUNT);
-    const vx = new Float32Array(COUNT);
-    const vy = new Float32Array(COUNT);
-    const tx = new Float32Array(COUNT);
-    const ty = new Float32Array(COUNT);
+  const init = useCallback(
+    (ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => {
+      const COUNT = 200;
+      const px = new Float32Array(COUNT);
+      const py = new Float32Array(COUNT);
+      const vx = new Float32Array(COUNT);
+      const vy = new Float32Array(COUNT);
+      const tx = new Float32Array(COUNT);
+      const ty = new Float32Array(COUNT);
 
-    const randomizeTargets = () => {
-      for (let i = 0; i < COUNT; i++) {
-        tx[i] = 0.15 + Math.random() * 0.7;
-        ty[i] = 0.15 + Math.random() * 0.7;
-      }
-    };
-
-    for (let i = 0; i < COUNT; i++) {
-      px[i] = Math.random();
-      py[i] = Math.random();
-      vx[i] = 0;
-      vy[i] = 0;
-    }
-    randomizeTargets();
-
-    // Shuffle targets every 3 seconds
-    const interval = setInterval(randomizeTargets, 3000);
-
-    let raf = 0;
-    let dead = false;
-
-    const draw = () => {
-      if (dead) return;
-      const rect = cvs.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-      if (w === 0) { raf = requestAnimationFrame(draw); return; }
-
-      ctx.clearRect(0, 0, w, h);
-      const isDark = document.documentElement.classList.contains("dark");
+      const randomizeTargets = () => {
+        for (let i = 0; i < COUNT; i++) {
+          tx[i] = 0.15 + Math.random() * 0.7;
+          ty[i] = 0.15 + Math.random() * 0.7;
+        }
+      };
 
       for (let i = 0; i < COUNT; i++) {
-        const dx = tx[i] - px[i];
-        const dy = ty[i] - py[i];
-        vx[i] += dx * 0.03;
-        vy[i] += dy * 0.03;
-        vx[i] *= 0.88;
-        vy[i] *= 0.88;
-        px[i] += vx[i];
-        py[i] += vy[i];
-
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const alpha = Math.max(0.2, Math.min(0.8, 1 - dist * 3));
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = isDark ? "rgb(99, 102, 241)" : "rgb(79, 70, 229)";
-        ctx.beginPath();
-        ctx.arc(px[i] * w, py[i] * h, 1.5, 0, Math.PI * 2);
-        ctx.fill();
+        px[i] = Math.random();
+        py[i] = Math.random();
+        vx[i] = 0;
+        vy[i] = 0;
       }
-      ctx.globalAlpha = 1;
+      randomizeTargets();
+
+      // Shuffle targets every 3 seconds
+      const interval = setInterval(randomizeTargets, 3000);
+
+      let raf = 0;
+      let dead = false;
+
+      const draw = () => {
+        if (dead) return;
+        const rect = cvs.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        if (w === 0) {
+          raf = requestAnimationFrame(draw);
+          return;
+        }
+
+        ctx.clearRect(0, 0, w, h);
+        const isDark = document.documentElement.classList.contains("dark");
+
+        for (let i = 0; i < COUNT; i++) {
+          const dx = tx[i] - px[i];
+          const dy = ty[i] - py[i];
+          vx[i] += dx * 0.03;
+          vy[i] += dy * 0.03;
+          vx[i] *= 0.88;
+          vy[i] *= 0.88;
+          px[i] += vx[i];
+          py[i] += vy[i];
+
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const alpha = Math.max(0.2, Math.min(0.8, 1 - dist * 3));
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = isDark ? "rgb(99, 102, 241)" : "rgb(79, 70, 229)";
+          ctx.beginPath();
+          ctx.arc(px[i] * w, py[i] * h, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        raf = requestAnimationFrame(draw);
+      };
+
       raf = requestAnimationFrame(draw);
-    };
+      return () => {
+        dead = true;
+        cancelAnimationFrame(raf);
+        clearInterval(interval);
+      };
+    },
+    [],
+  );
 
-    raf = requestAnimationFrame(draw);
-    return () => { dead = true; cancelAnimationFrame(raf); clearInterval(interval); };
-  }, []);
-
-  return <StepCanvas height={260} init={init} label="spring physics — particles chase new random targets every 3s (spring: 0.03, damping: 0.88)" />;
+  return (
+    <StepCanvas
+      height={260}
+      init={init}
+      label="spring physics — particles chase new random targets every 3s (spring: 0.03, damping: 0.88)"
+    />
+  );
 }
 
 // ── Step 4: Arrange into a circle ──
 export function Step4Circle() {
-  const init = useCallback((ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => {
-    const COUNT = 500;
-    const px = new Float32Array(COUNT);
-    const py = new Float32Array(COUNT);
-    const vx = new Float32Array(COUNT);
-    const vy = new Float32Array(COUNT);
-    const tx = new Float32Array(COUNT);
-    const ty = new Float32Array(COUNT);
-    const seed = new Float32Array(COUNT);
+  const init = useCallback(
+    (ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => {
+      const COUNT = 500;
+      const px = new Float32Array(COUNT);
+      const py = new Float32Array(COUNT);
+      const vx = new Float32Array(COUNT);
+      const vy = new Float32Array(COUNT);
+      const tx = new Float32Array(COUNT);
+      const ty = new Float32Array(COUNT);
+      const seed = new Float32Array(COUNT);
 
-    let isCircle = true;
+      let isCircle = true;
 
-    const setCircle = () => {
-      for (let i = 0; i < COUNT; i++) {
-        // Mix of edge + fill
-        if (i < COUNT * 0.6) {
-          const angle = (i / (COUNT * 0.6)) * Math.PI * 2;
-          tx[i] = 0.5 + Math.cos(angle) * 0.3;
-          ty[i] = 0.5 + Math.sin(angle) * 0.3;
-        } else {
-          const angle = Math.random() * Math.PI * 2;
-          const r = Math.sqrt(Math.random()) * 0.28;
-          tx[i] = 0.5 + Math.cos(angle) * r;
-          ty[i] = 0.5 + Math.sin(angle) * r;
+      const setCircle = () => {
+        for (let i = 0; i < COUNT; i++) {
+          // Mix of edge + fill
+          if (i < COUNT * 0.6) {
+            const angle = (i / (COUNT * 0.6)) * Math.PI * 2;
+            tx[i] = 0.5 + Math.cos(angle) * 0.3;
+            ty[i] = 0.5 + Math.sin(angle) * 0.3;
+          } else {
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.sqrt(Math.random()) * 0.28;
+            tx[i] = 0.5 + Math.cos(angle) * r;
+            ty[i] = 0.5 + Math.sin(angle) * r;
+          }
         }
-      }
-    };
+      };
 
-    const setGrid = () => {
-      const cols = 25;
-      const rows = 20;
-      for (let i = 0; i < COUNT; i++) {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        tx[i] = 0.1 + (col / (cols - 1)) * 0.8;
-        ty[i] = 0.1 + (row / (rows - 1)) * 0.8;
-      }
-    };
-
-    for (let i = 0; i < COUNT; i++) {
-      px[i] = Math.random();
-      py[i] = Math.random();
-      vx[i] = 0;
-      vy[i] = 0;
-      seed[i] = Math.random() * Math.PI * 2;
-    }
-    setCircle();
-
-    let raf = 0;
-    let dead = false;
-    const startTime = performance.now();
-
-    const handleClick = () => {
-      isCircle = !isCircle;
-      if (isCircle) setCircle(); else setGrid();
-      // Kick
-      for (let i = 0; i < COUNT; i++) {
-        vx[i] += (Math.random() - 0.5) * 0.02;
-        vy[i] += (Math.random() - 0.5) * 0.02;
-      }
-    };
-
-    cvs.addEventListener("click", handleClick);
-    cvs.style.cursor = "pointer";
-
-    const draw = () => {
-      if (dead) return;
-      const rect = cvs.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-      if (w === 0) { raf = requestAnimationFrame(draw); return; }
-
-      const t = (performance.now() - startTime) / 1000;
-      ctx.clearRect(0, 0, w, h);
-      const isDark = document.documentElement.classList.contains("dark");
+      const setGrid = () => {
+        const cols = 25;
+        const rows = 20;
+        for (let i = 0; i < COUNT; i++) {
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          tx[i] = 0.1 + (col / (cols - 1)) * 0.8;
+          ty[i] = 0.1 + (row / (rows - 1)) * 0.8;
+        }
+      };
 
       for (let i = 0; i < COUNT; i++) {
-        const dx = tx[i] - px[i];
-        const dy = ty[i] - py[i];
-        vx[i] += dx * 0.03;
-        vy[i] += dy * 0.03;
-        vx[i] *= 0.88;
-        vy[i] *= 0.88;
-        px[i] += vx[i];
-        py[i] += vy[i];
-
-        const floatX = Math.sin(t * 0.3 + seed[i]) * 0.003;
-        const floatY = Math.cos(t * 0.25 + seed[i] * 1.3) * 0.002;
-
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const alpha = Math.max(0.15, Math.min(0.8, 1 - dist * 3));
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = isDark ? "rgb(99, 102, 241)" : "rgb(79, 70, 229)";
-        ctx.beginPath();
-        ctx.arc((px[i] + floatX) * w, (py[i] + floatY) * h, 1.5, 0, Math.PI * 2);
-        ctx.fill();
+        px[i] = Math.random();
+        py[i] = Math.random();
+        vx[i] = 0;
+        vy[i] = 0;
+        seed[i] = Math.random() * Math.PI * 2;
       }
-      ctx.globalAlpha = 1;
+      setCircle();
+
+      let raf = 0;
+      let dead = false;
+      const startTime = performance.now();
+
+      const handleClick = () => {
+        isCircle = !isCircle;
+        if (isCircle) setCircle();
+        else setGrid();
+        // Kick
+        for (let i = 0; i < COUNT; i++) {
+          vx[i] += (Math.random() - 0.5) * 0.02;
+          vy[i] += (Math.random() - 0.5) * 0.02;
+        }
+      };
+
+      cvs.addEventListener("click", handleClick);
+      cvs.style.cursor = "pointer";
+
+      const draw = () => {
+        if (dead) return;
+        const rect = cvs.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        if (w === 0) {
+          raf = requestAnimationFrame(draw);
+          return;
+        }
+
+        const t = (performance.now() - startTime) / 1000;
+        ctx.clearRect(0, 0, w, h);
+        const isDark = document.documentElement.classList.contains("dark");
+
+        for (let i = 0; i < COUNT; i++) {
+          const dx = tx[i] - px[i];
+          const dy = ty[i] - py[i];
+          vx[i] += dx * 0.03;
+          vy[i] += dy * 0.03;
+          vx[i] *= 0.88;
+          vy[i] *= 0.88;
+          px[i] += vx[i];
+          py[i] += vy[i];
+
+          const floatX = Math.sin(t * 0.3 + seed[i]) * 0.003;
+          const floatY = Math.cos(t * 0.25 + seed[i] * 1.3) * 0.002;
+
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const alpha = Math.max(0.15, Math.min(0.8, 1 - dist * 3));
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = isDark ? "rgb(99, 102, 241)" : "rgb(79, 70, 229)";
+          ctx.beginPath();
+          ctx.arc(
+            (px[i] + floatX) * w,
+            (py[i] + floatY) * h,
+            1.5,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        raf = requestAnimationFrame(draw);
+      };
+
       raf = requestAnimationFrame(draw);
-    };
+      return () => {
+        dead = true;
+        cancelAnimationFrame(raf);
+        cvs.removeEventListener("click", handleClick);
+      };
+    },
+    [],
+  );
 
-    raf = requestAnimationFrame(draw);
-    return () => { dead = true; cancelAnimationFrame(raf); cvs.removeEventListener("click", handleClick); };
-  }, []);
-
-  return <StepCanvas height={280} init={init} label="click to toggle between circle and grid — same physics, different targets" />;
+  return (
+    <StepCanvas
+      height={280}
+      init={init}
+      label="click to toggle between circle and grid — same physics, different targets"
+    />
+  );
 }
 
 // ── Step 5: Mouse repulsion ──
 export function Step5Mouse() {
-  const init = useCallback((ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => {
-    const COUNT = 600;
-    const px = new Float32Array(COUNT);
-    const py = new Float32Array(COUNT);
-    const vx = new Float32Array(COUNT);
-    const vy = new Float32Array(COUNT);
-    const tx = new Float32Array(COUNT);
-    const ty = new Float32Array(COUNT);
-    const seed = new Float32Array(COUNT);
-    const psize = new Float32Array(COUNT);
+  const init = useCallback(
+    (ctx: CanvasRenderingContext2D, cvs: HTMLCanvasElement) => {
+      const COUNT = 600;
+      const px = new Float32Array(COUNT);
+      const py = new Float32Array(COUNT);
+      const vx = new Float32Array(COUNT);
+      const vy = new Float32Array(COUNT);
+      const tx = new Float32Array(COUNT);
+      const ty = new Float32Array(COUNT);
+      const seed = new Float32Array(COUNT);
+      const psize = new Float32Array(COUNT);
 
-    const mouse = { x: -9999, y: -9999 };
+      const mouse = { x: -9999, y: -9999 };
 
-    // Heart shape
-    for (let i = 0; i < COUNT; i++) {
-      seed[i] = Math.random() * Math.PI * 2;
-      psize[i] = 0.6 + Math.random() * 1.0;
-
-      if (i < COUNT * 0.4) {
-        // Edge
-        const t = (i / (COUNT * 0.4)) * Math.PI * 2;
-        const hx = 16 * Math.pow(Math.sin(t), 3);
-        const hy = (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-        tx[i] = 0.5 + (hx / 18) * 0.3;
-        ty[i] = 0.5 + (-hy / 18) * 0.3;
-      } else {
-        // Fill
-        const t = Math.random() * Math.PI * 2;
-        const s = Math.sqrt(Math.random()) * 0.9;
-        const hx = 16 * Math.pow(Math.sin(t), 3) * s;
-        const hy = (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * s;
-        tx[i] = 0.5 + (hx / 18) * 0.3;
-        ty[i] = 0.5 + (-hy / 18) * 0.3;
-      }
-
-      px[i] = (Math.random() - 0.5) * 0.5 + 0.5;
-      py[i] = (Math.random() - 0.5) * 0.5 + 0.5;
-      vx[i] = 0;
-      vy[i] = 0;
-    }
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = cvs.getBoundingClientRect();
-      mouse.x = e.clientX - rect.left;
-      mouse.y = e.clientY - rect.top;
-    };
-    const handleMouseLeave = () => { mouse.x = -9999; mouse.y = -9999; };
-    cvs.addEventListener("mousemove", handleMouseMove);
-    cvs.addEventListener("mouseleave", handleMouseLeave);
-
-    let raf = 0;
-    let dead = false;
-    const startTime = performance.now();
-
-    const draw = () => {
-      if (dead) return;
-      const rect = cvs.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-      if (w === 0) { raf = requestAnimationFrame(draw); return; }
-
-      const t = (performance.now() - startTime) / 1000;
-      ctx.clearRect(0, 0, w, h);
-      const isDark = document.documentElement.classList.contains("dark");
-
-      const REPEL_RADIUS = 50;
-      const REPEL_FORCE = 0.08;
-
+      // Heart shape
       for (let i = 0; i < COUNT; i++) {
-        const screenX = px[i] * w;
-        const screenY = py[i] * h;
+        seed[i] = Math.random() * Math.PI * 2;
+        psize[i] = 0.6 + Math.random() * 1.0;
 
-        // Mouse repulsion
-        const mdx = screenX - mouse.x;
-        const mdy = screenY - mouse.y;
-        const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
-        if (mDist < REPEL_RADIUS && mDist > 0.1) {
-          const force = (1 - mDist / REPEL_RADIUS) * REPEL_FORCE;
-          vx[i] += (mdx / mDist) * force / w;
-          vy[i] += (mdy / mDist) * force / h;
+        if (i < COUNT * 0.4) {
+          // Edge
+          const t = (i / (COUNT * 0.4)) * Math.PI * 2;
+          const hx = 16 * Math.pow(Math.sin(t), 3);
+          const hy =
+            13 * Math.cos(t) -
+            5 * Math.cos(2 * t) -
+            2 * Math.cos(3 * t) -
+            Math.cos(4 * t);
+          tx[i] = 0.5 + (hx / 18) * 0.3;
+          ty[i] = 0.5 + (-hy / 18) * 0.3;
+        } else {
+          // Fill
+          const t = Math.random() * Math.PI * 2;
+          const s = Math.sqrt(Math.random()) * 0.9;
+          const hx = 16 * Math.pow(Math.sin(t), 3) * s;
+          const hy =
+            (13 * Math.cos(t) -
+              5 * Math.cos(2 * t) -
+              2 * Math.cos(3 * t) -
+              Math.cos(4 * t)) *
+            s;
+          tx[i] = 0.5 + (hx / 18) * 0.3;
+          ty[i] = 0.5 + (-hy / 18) * 0.3;
         }
 
-        // Spring
-        const dx = tx[i] - px[i];
-        const dy = ty[i] - py[i];
-        vx[i] += dx * 0.03;
-        vy[i] += dy * 0.03;
-        vx[i] *= 0.88;
-        vy[i] *= 0.88;
-        px[i] += vx[i];
-        py[i] += vy[i];
-
-        // Float
-        const floatX = Math.sin(t * 0.3 + seed[i]) * 0.003;
-        const floatY = Math.cos(t * 0.25 + seed[i] * 1.3) * 0.002;
-
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const alpha = Math.max(0.15, Math.min(0.85, 1 - dist * 3));
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = isDark
-          ? `rgba(99, 102, 241, ${0.6 + Math.sin(t * 0.5 + seed[i]) * 0.15})`
-          : `rgba(79, 70, 229, ${0.5 + Math.sin(t * 0.5 + seed[i]) * 0.15})`;
-        ctx.beginPath();
-        ctx.arc((px[i] + floatX) * w, (py[i] + floatY) * h, psize[i], 0, Math.PI * 2);
-        ctx.fill();
+        px[i] = (Math.random() - 0.5) * 0.5 + 0.5;
+        py[i] = (Math.random() - 0.5) * 0.5 + 0.5;
+        vx[i] = 0;
+        vy[i] = 0;
       }
-      ctx.globalAlpha = 1;
+
+      const handleMouseMove = (e: MouseEvent) => {
+        const rect = cvs.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+      };
+      const handleMouseLeave = () => {
+        mouse.x = -9999;
+        mouse.y = -9999;
+      };
+      cvs.addEventListener("mousemove", handleMouseMove);
+      cvs.addEventListener("mouseleave", handleMouseLeave);
+
+      let raf = 0;
+      let dead = false;
+      const startTime = performance.now();
+
+      const draw = () => {
+        if (dead) return;
+        const rect = cvs.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        if (w === 0) {
+          raf = requestAnimationFrame(draw);
+          return;
+        }
+
+        const t = (performance.now() - startTime) / 1000;
+        ctx.clearRect(0, 0, w, h);
+        const isDark = document.documentElement.classList.contains("dark");
+
+        const REPEL_RADIUS = 50;
+        const REPEL_FORCE = 0.08;
+
+        for (let i = 0; i < COUNT; i++) {
+          const screenX = px[i] * w;
+          const screenY = py[i] * h;
+
+          // Mouse repulsion
+          const mdx = screenX - mouse.x;
+          const mdy = screenY - mouse.y;
+          const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+          if (mDist < REPEL_RADIUS && mDist > 0.1) {
+            const force = (1 - mDist / REPEL_RADIUS) * REPEL_FORCE;
+            vx[i] += ((mdx / mDist) * force) / w;
+            vy[i] += ((mdy / mDist) * force) / h;
+          }
+
+          // Spring
+          const dx = tx[i] - px[i];
+          const dy = ty[i] - py[i];
+          vx[i] += dx * 0.03;
+          vy[i] += dy * 0.03;
+          vx[i] *= 0.88;
+          vy[i] *= 0.88;
+          px[i] += vx[i];
+          py[i] += vy[i];
+
+          // Float
+          const floatX = Math.sin(t * 0.3 + seed[i]) * 0.003;
+          const floatY = Math.cos(t * 0.25 + seed[i] * 1.3) * 0.002;
+
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const alpha = Math.max(0.15, Math.min(0.85, 1 - dist * 3));
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = isDark
+            ? `rgba(99, 102, 241, ${0.6 + Math.sin(t * 0.5 + seed[i]) * 0.15})`
+            : `rgba(79, 70, 229, ${0.5 + Math.sin(t * 0.5 + seed[i]) * 0.15})`;
+          ctx.beginPath();
+          ctx.arc(
+            (px[i] + floatX) * w,
+            (py[i] + floatY) * h,
+            psize[i],
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        raf = requestAnimationFrame(draw);
+      };
+
       raf = requestAnimationFrame(draw);
-    };
+      return () => {
+        dead = true;
+        cancelAnimationFrame(raf);
+        cvs.removeEventListener("mousemove", handleMouseMove);
+        cvs.removeEventListener("mouseleave", handleMouseLeave);
+      };
+    },
+    [],
+  );
 
-    raf = requestAnimationFrame(draw);
-    return () => {
-      dead = true;
-      cancelAnimationFrame(raf);
-      cvs.removeEventListener("mousemove", handleMouseMove);
-      cvs.removeEventListener("mouseleave", handleMouseLeave);
-    };
-  }, []);
-
-  return <StepCanvas height={300} init={init} label="hover to repel particles — the spring pulls them back" />;
+  return (
+    <StepCanvas
+      height={300}
+      init={init}
+      label="hover to repel particles — the spring pulls them back"
+    />
+  );
 }
 
 // ── Step 6: SVG sampling demo ──
 export function Step6SVG() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [svgText, setSvgText] = useState(
-    "M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z"
+    "M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z",
   );
 
   const particleState = useRef<{
@@ -719,79 +866,100 @@ export function Step6SVG() {
     raf: number;
   } | null>(null);
 
-  const samplePath = useCallback((pathData: string, count: number): [number, number][] => {
-    try {
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.setAttribute("viewBox", "0 0 24 24");
-      svg.style.position = "absolute";
-      svg.style.left = "-9999px";
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", pathData);
-      svg.appendChild(path);
-      document.body.appendChild(svg);
+  const samplePath = useCallback(
+    (pathData: string, count: number): [number, number][] => {
+      try {
+        const svg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg",
+        );
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.style.position = "absolute";
+        svg.style.left = "-9999px";
+        const path = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path",
+        );
+        path.setAttribute("d", pathData);
+        svg.appendChild(path);
+        document.body.appendChild(svg);
 
-      const len = path.getTotalLength();
-      const bbox = path.getBBox();
-      const pts: [number, number][] = [];
+        const len = path.getTotalLength();
+        const bbox = path.getBBox();
+        const pts: [number, number][] = [];
 
-      // 60% edge, 40% fill
-      const edgeCount = Math.floor(count * 0.6);
-      for (let i = 0; i < edgeCount; i++) {
-        const pt = path.getPointAtLength((i / edgeCount) * len);
-        pts.push([pt.x, pt.y]);
-      }
-
-      // Interior fill via random sampling
-      let attempts = 0;
-      while (pts.length < count && attempts < count * 20) {
-        const x = bbox.x + Math.random() * bbox.width;
-        const y = bbox.y + Math.random() * bbox.height;
-        // Check if inside by ray-casting approximation (use isPointInFill if available)
-        const edgePt = path.getPointAtLength(Math.random() * len);
-        const dx = x - edgePt.x;
-        const dy = y - edgePt.y;
-        if (Math.sqrt(dx * dx + dy * dy) < Math.max(bbox.width, bbox.height) * 0.4) {
-          pts.push([x, y]);
+        // 60% edge, 40% fill
+        const edgeCount = Math.floor(count * 0.6);
+        for (let i = 0; i < edgeCount; i++) {
+          const pt = path.getPointAtLength((i / edgeCount) * len);
+          pts.push([pt.x, pt.y]);
         }
-        attempts++;
+
+        // Interior fill via random sampling
+        let attempts = 0;
+        while (pts.length < count && attempts < count * 20) {
+          const x = bbox.x + Math.random() * bbox.width;
+          const y = bbox.y + Math.random() * bbox.height;
+          // Check if inside by ray-casting approximation (use isPointInFill if available)
+          const edgePt = path.getPointAtLength(Math.random() * len);
+          const dx = x - edgePt.x;
+          const dy = y - edgePt.y;
+          if (
+            Math.sqrt(dx * dx + dy * dy) <
+            Math.max(bbox.width, bbox.height) * 0.4
+          ) {
+            pts.push([x, y]);
+          }
+          attempts++;
+        }
+        // Fill remaining
+        while (pts.length < count) {
+          const pt = path.getPointAtLength(Math.random() * len);
+          pts.push([
+            pt.x + (Math.random() - 0.5) * 0.5,
+            pt.y + (Math.random() - 0.5) * 0.5,
+          ]);
+        }
+
+        document.body.removeChild(svg);
+
+        // Normalize to 0..1
+        const cx = bbox.x + bbox.width / 2;
+        const cy = bbox.y + bbox.height / 2;
+        const scale = Math.max(bbox.width, bbox.height) / 2;
+        return pts.map(([x, y]) => [
+          0.5 + ((x - cx) / scale) * 0.3,
+          0.5 + ((y - cy) / scale) * 0.3,
+        ]);
+      } catch {
+        // Fallback to circle
+        return Array.from({ length: count }, (_, i) => {
+          const angle = (i / count) * Math.PI * 2;
+          return [0.5 + Math.cos(angle) * 0.3, 0.5 + Math.sin(angle) * 0.3] as [
+            number,
+            number,
+          ];
+        });
       }
-      // Fill remaining
-      while (pts.length < count) {
-        const pt = path.getPointAtLength(Math.random() * len);
-        pts.push([pt.x + (Math.random() - 0.5) * 0.5, pt.y + (Math.random() - 0.5) * 0.5]);
+    },
+    [],
+  );
+
+  const morphToPath = useCallback(
+    (pathData: string) => {
+      const state = particleState.current;
+      if (!state) return;
+      const COUNT = state.px.length;
+      const pts = samplePath(pathData, COUNT);
+      for (let i = 0; i < COUNT; i++) {
+        state.tx[i] = pts[i][0];
+        state.ty[i] = pts[i][1];
+        state.vx[i] += (Math.random() - 0.5) * 0.02;
+        state.vy[i] += (Math.random() - 0.5) * 0.02;
       }
-
-      document.body.removeChild(svg);
-
-      // Normalize to 0..1
-      const cx = bbox.x + bbox.width / 2;
-      const cy = bbox.y + bbox.height / 2;
-      const scale = Math.max(bbox.width, bbox.height) / 2;
-      return pts.map(([x, y]) => [
-        0.5 + ((x - cx) / scale) * 0.3,
-        0.5 + ((y - cy) / scale) * 0.3,
-      ]);
-    } catch {
-      // Fallback to circle
-      return Array.from({ length: count }, (_, i) => {
-        const angle = (i / count) * Math.PI * 2;
-        return [0.5 + Math.cos(angle) * 0.3, 0.5 + Math.sin(angle) * 0.3] as [number, number];
-      });
-    }
-  }, []);
-
-  const morphToPath = useCallback((pathData: string) => {
-    const state = particleState.current;
-    if (!state) return;
-    const COUNT = state.px.length;
-    const pts = samplePath(pathData, COUNT);
-    for (let i = 0; i < COUNT; i++) {
-      state.tx[i] = pts[i][0];
-      state.ty[i] = pts[i][1];
-      state.vx[i] += (Math.random() - 0.5) * 0.02;
-      state.vy[i] += (Math.random() - 0.5) * 0.02;
-    }
-  }, [samplePath]);
+    },
+    [samplePath],
+  );
 
   useEffect(() => {
     const cvs = canvasRef.current;
@@ -832,7 +1000,19 @@ export function Step6SVG() {
       psize[i] = 0.6 + Math.random() * 0.8;
     }
 
-    particleState.current = { px, py, vx, vy, tx, ty, seed, psize, mouse, dead: false, raf: 0 };
+    particleState.current = {
+      px,
+      py,
+      vx,
+      vy,
+      tx,
+      ty,
+      seed,
+      psize,
+      mouse,
+      dead: false,
+      raf: 0,
+    };
     const state = particleState.current;
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -840,7 +1020,10 @@ export function Step6SVG() {
       mouse.x = e.clientX - rect.left;
       mouse.y = e.clientY - rect.top;
     };
-    const handleMouseLeave = () => { mouse.x = -9999; mouse.y = -9999; };
+    const handleMouseLeave = () => {
+      mouse.x = -9999;
+      mouse.y = -9999;
+    };
     cvs.addEventListener("mousemove", handleMouseMove);
     cvs.addEventListener("mouseleave", handleMouseLeave);
 
@@ -851,7 +1034,10 @@ export function Step6SVG() {
       const rect = cvs.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;
-      if (w === 0) { state.raf = requestAnimationFrame(draw); return; }
+      if (w === 0) {
+        state.raf = requestAnimationFrame(draw);
+        return;
+      }
 
       const t = (performance.now() - startTime) / 1000;
       ctx.clearRect(0, 0, w, h);
@@ -866,8 +1052,8 @@ export function Step6SVG() {
         const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
         if (mDist < 40 && mDist > 0.1) {
           const force = (1 - mDist / 40) * 0.06;
-          vx[i] += (mdx / mDist) * force / w;
-          vy[i] += (mdy / mDist) * force / h;
+          vx[i] += ((mdx / mDist) * force) / w;
+          vy[i] += ((mdy / mDist) * force) / h;
         }
 
         const dx = tx[i] - px[i];
@@ -889,7 +1075,13 @@ export function Step6SVG() {
           ? `rgba(99, 102, 241, ${0.6 + Math.sin(t * 0.5 + seed[i]) * 0.15})`
           : `rgba(79, 70, 229, ${0.5 + Math.sin(t * 0.5 + seed[i]) * 0.15})`;
         ctx.beginPath();
-        ctx.arc((px[i] + floatX) * w, (py[i] + floatY) * h, psize[i], 0, Math.PI * 2);
+        ctx.arc(
+          (px[i] + floatX) * w,
+          (py[i] + floatY) * h,
+          psize[i],
+          0,
+          Math.PI * 2,
+        );
         ctx.fill();
       }
       ctx.globalAlpha = 1;
@@ -904,43 +1096,70 @@ export function Step6SVG() {
       cvs.removeEventListener("mousemove", handleMouseMove);
       cvs.removeEventListener("mouseleave", handleMouseLeave);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const presets: Record<string, string> = {
     star: "M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z",
-    heart: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
+    heart:
+      "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
     bolt: "M13 2L3 14h9l-1 10 10-12h-9l1-10z",
-    circle: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z",
+    circle:
+      "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z",
   };
 
   return (
     <div
       className="my-6 rounded-lg overflow-hidden"
-      style={{ border: "1px solid var(--border)", background: "var(--code-bg)" }}
+      style={{
+        border: "1px solid var(--blog-border)",
+        background: "var(--blog-code-bg)",
+      }}
     >
       <canvas
         ref={canvasRef}
-        style={{ width: "100%", height: 300, display: "block", cursor: "crosshair" }}
+        style={{
+          width: "100%",
+          height: 300,
+          display: "block",
+          cursor: "crosshair",
+        }}
       />
-      <div className="px-3 py-3 space-y-2" style={{ borderTop: "1px solid var(--border)" }}>
+      <div
+        className="px-3 py-3 space-y-2"
+        style={{ borderTop: "1px solid var(--blog-border)" }}
+      >
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-mono uppercase tracking-wider opacity-50" style={{ color: "var(--text-muted)" }}>
+          <span
+            className="text-[10px] font-mono uppercase tracking-wider opacity-50"
+            style={{ color: "var(--blog-text-muted)" }}
+          >
             presets
           </span>
           {Object.keys(presets).map((key) => (
             <button
               key={key}
-              onClick={() => { setSvgText(presets[key]); morphToPath(presets[key]); }}
+              onClick={() => {
+                setSvgText(presets[key]);
+                morphToPath(presets[key]);
+              }}
               className="px-2 py-0.5 rounded text-[10px] font-mono transition-colors"
               style={{
-                border: "1px solid var(--border)",
+                border: "1px solid var(--blog-border)",
                 background: "transparent",
-                color: "var(--text-muted)",
+                color: "var(--blog-text-muted)",
                 cursor: "pointer",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent)"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "var(--accent)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.borderColor = "var(--border)"; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--blog-accent)";
+                e.currentTarget.style.color = "#fff";
+                e.currentTarget.style.borderColor = "var(--blog-accent)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--blog-text-muted)";
+                e.currentTarget.style.borderColor = "var(--blog-border)";
+              }}
             >
               {key}
             </button>
@@ -953,12 +1172,21 @@ export function Step6SVG() {
             onChange={(e) => setSvgText(e.target.value)}
             placeholder='paste svg path d="..." data'
             className="flex-1 px-2 py-1 rounded text-[10px] font-mono outline-none"
-            style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}
+            style={{
+              background: "var(--blog-bg)",
+              border: "1px solid var(--blog-border)",
+              color: "var(--blog-text)",
+            }}
           />
           <button
             onClick={() => morphToPath(svgText)}
             className="px-2.5 py-1 rounded text-[10px] font-mono"
-            style={{ background: "var(--accent)", color: "#fff", border: "none", cursor: "pointer" }}
+            style={{
+              background: "var(--blog-accent)",
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+            }}
           >
             morph
           </button>
@@ -966,7 +1194,11 @@ export function Step6SVG() {
       </div>
       <div
         className="px-3 py-2 text-[10px] font-mono"
-        style={{ borderTop: "1px solid var(--border)", color: "var(--text-muted)", opacity: 0.6 }}
+        style={{
+          borderTop: "1px solid var(--blog-border)",
+          color: "var(--blog-text-muted)",
+          opacity: 0.6,
+        }}
       >
         paste any svg path data or pick a preset — particles morph to match
       </div>

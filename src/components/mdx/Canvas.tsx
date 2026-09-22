@@ -10,7 +10,13 @@ interface CanvasProps {
   id?: string;
 }
 
-export default function Canvas({ children, width = 400, height = 200, className, id }: CanvasProps) {
+export default function Canvas({
+  children,
+  width = 400,
+  height = 200,
+  className,
+  id,
+}: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -26,7 +32,7 @@ export default function Canvas({ children, width = 400, height = 200, className,
     const spacing = 20;
     for (let x = spacing; x < width; x += spacing) {
       for (let y = spacing; y < height; y += spacing) {
-        ctx.fillStyle = "var(--text-muted)";
+        ctx.fillStyle = "var(--blog-text-muted)";
         ctx.globalAlpha = 0.15;
         ctx.beginPath();
         ctx.arc(x, y, 1, 0, Math.PI * 2);
@@ -45,14 +51,26 @@ export default function Canvas({ children, width = 400, height = 200, className,
 
   return (
     <div className={`my-8 ${className || ""}`}>
-      <div className="overflow-hidden rounded-lg" style={{ border: "1px solid var(--border)", background: "var(--code-bg)" }}>
+      <div
+        className="overflow-hidden rounded-lg"
+        style={{
+          border: "1px solid var(--blog-border)",
+          background: "var(--blog-code-bg)",
+        }}
+      >
         <canvas
           ref={canvasRef}
           id={id}
           style={{ width: "100%", height: height, display: "block" }}
         />
         {children && (
-          <div className="p-3 text-xs" style={{ borderTop: "1px solid var(--border)", color: "var(--text-muted)" }}>
+          <div
+            className="p-3 text-xs"
+            style={{
+              borderTop: "1px solid var(--blog-border)",
+              color: "var(--blog-text-muted)",
+            }}
+          >
             {children}
           </div>
         )}
